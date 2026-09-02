@@ -1,0 +1,62 @@
+# Playwright MCP scratch (console logs / page dumps / screenshots)
+.playwright-mcp/
+.codex-remote-attachments/
+
+# Local Claude Code settings
+.claude/settings.local.json
+.claude/settings.json
+
+# Local multi-agent scratch
+.agents/
+
+# Scratch render previews from the build/verify loop
+**/_preview_*.png
+temp_*.py
+
+# Scraper runtime state & database artifacts
+data/*.sqlite
+data/*.sqlite3
+data/*.sqlite-*
+data/*.bak
+data/*.csv
+data/*.md
+!data/.gitkeep
+data/source-snapshots/
+careers-directory.md
+
+# Fonts & python cache
+fonts/chameleon/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# OS cruft
+Thumbs.db
+.DS_Store
+
+# Docker runtime artifacts (Dockerfile, docker-compose.yml, .dockerignore are committed)
+docker-compose.override.yml
+.docker/
+docker-data/
+*.pid
+
+# Local environment (holds the host-specific Tailscale bind IP) — .env.example is committed
+.env
+.venv/
+
+# Local quarantine for generated exports, draft packs, and one-off scratch files
+.local-quarantine/
+
+# Python build artifacts
+build/
+*.egg-info/
+
+# Sensitive secrets & profile configuration
+config/.jobhunt-secrets.key
+config/profile.yaml
+!config/profile.example.yaml
+
+# Application compiled PDFs
+Applications/**/cv.pdf
+Applications/**/motivation-letter.pdf

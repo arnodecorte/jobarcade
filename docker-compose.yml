@@ -1,0 +1,23 @@
+services:
+  dashboard:
+    build: .
+    container_name: jobhunt-hub
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./Applications:/app/Applications
+    environment:
+      - PYTHONUNBUFFERED=1
+      - JOBHUNT_OLLAMA_URL=http://host.docker.internal:11434
+      - JOBHUNT_OLLAMA_MODEL=qwen2.5:7b
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY:-}
+      - FIRECRAWL_API_URL=${FIRECRAWL_API_URL:-https://api.firecrawl.dev/v2/scrape}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GMAIL_REDIRECT_URI=${GMAIL_REDIRECT_URI:-}
+      - GMAIL_TOKEN_ENCRYPTION_KEY=${GMAIL_TOKEN_ENCRYPTION_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

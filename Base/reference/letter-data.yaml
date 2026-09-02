@@ -1,0 +1,20 @@
+# CANONICAL REFERENCE LETTER — style/structure exemplar for new drafts.
+# Companion to Base/reference/cv-data.yaml; fed to the drafting model as the
+# reference application. Placeholders like <Company> mark where a real draft
+# must substitute role-specific content — the model should copy the structure
+# and tone, never the placeholders.
+max_pages: 1
+subtitle: <Role Title> — <Company>
+paragraphs:
+- I am applying for the <Role Title> position at <Company>. Building brand-consistent, data-informed marketing
+  campaigns across every channel — and automating repetitive workflows to maximize creative impact — is exactly
+  the kind of work I do best.
+- At TechCorp I own the full-funnel marketing pipeline across brand, web, social, email, CRM, and paid campaigns,
+  partnering closely with leadership and product teams. I independently built and deployed automated lifecycle
+  nurture workflows in HubSpot and launched targeted acquisition campaigns that grew organic inbound leads by 35%.
+- Previously at StartupX, I executed iterative A/B tests across onboarding funnels that boosted trial-to-paid
+  conversion by 18%, and built real-time performance dashboards in Power BI to monitor marketing ROI. Earlier at
+  Agency Y, I localized brand guidelines and produced multichannel creative collateral across 15+ accounts.
+- <Company>'s <specific, truthful hook from the job listing> strongly aligns with my approach to scalable growth,
+  and I would bring the same high ownership, strategic clarity, and hands-on execution to your team.
+- I would welcome the opportunity to discuss how my background and skill set can support <Company>'s goals.

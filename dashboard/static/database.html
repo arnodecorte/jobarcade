@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Angelica Job Hunt Database</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell database-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">DB</span>
+          <div>
+            <strong>Raw Database</strong>
+            <span>Developer View</span>
+          </div>
+        </div>
+        <nav aria-label="Database sections">
+          <a href="/">Dashboard</a>
+          <a href="/database" class="active">Database</a>
+          <a href="#raw-jobs">Raw Jobs</a>
+        </nav>
+        <p class="sidebar-note">Browse-only snapshot of deterministic scraper output before candidate filtering.</p>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <h1>Raw Scraper Database</h1>
+            <p id="database-status">Loading raw backend snapshot...</p>
+          </div>
+          <div class="topbar-actions">
+            <button id="refresh-button" type="button">Refresh</button>
+          </div>
+        </header>
+
+        <section class="metrics-grid raw-summary" id="raw-summary"></section>
+
+        <section class="section-block" id="raw-jobs">
+          <div class="section-heading table-heading">
+            <div>
+              <h2>Raw Jobs</h2>
+              <p>Every row the deterministic scrapers captured in the latest sweep. Relevant rows are the ones that passed the current filters.</p>
+            </div>
+            <div class="filters raw-filters">
+              <input id="raw-search" type="search" placeholder="Search company, role, location, source" />
+              <select id="raw-company-filter" aria-label="Filter raw rows by company">
+                <option value="">All companies</option>
+              </select>
+              <label class="checkbox-filter">
+                <input id="raw-relevant-only" type="checkbox" />
+                Relevant only
+              </label>
+            </div>
+          </div>
+
+          <div class="raw-company-grid" id="raw-company-grid"></div>
+
+          <div class="table-wrap raw-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Relevant</th>
+                  <th>Company</th>
+                  <th>Role</th>
+                  <th>Location</th>
+                  <th>Department</th>
+                  <th>Assessment</th>
+                  <th>Source</th>
+                </tr>
+              </thead>
+              <tbody id="raw-jobs-table"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="/database.js"></script>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+:root {
+  /* Warm cream base — calm, cozy, non-clinical. */
+  --bg: #fbf7f0;
+  --bg-2: #f4eee3;
+  --surface: #ffffff;
+  --surface-2: #fcf8f2;
+  --border: #ece3d4;
+  --border-strong: #e0d4bf;
+  --ink: #2e2a36;
+  --ink-soft: #756e7e;
+  --ink-faint: #a89fad;
+
+  /* Candy pastels — accents, never the whole field. Deep variants for text. */
+  --rose: #f7a8b8;
+  --rose-soft: #fde6ec;
+  --rose-deep: #d65b80;
+  --mint: #9ee7c5;
+  --mint-soft: #e6f8ef;
+  --mint-deep: #1c9468;
+  --butter: #fbd08a;
+  --butter-soft: #fef2db;
+  --butter-deep: #bd8418;
+  --sky: #a7d8f4;
+  --sky-soft: #e7f4fd;
+  --sky-deep: #2f86bf;
+  --berry: #bca4ec;
+  --berry-soft: #efe8fb;
+  --berry-deep: #7a5bc4;
+
+  /* The one high-energy surface: the Odds "felt" table at dusk. */
+  --dusk-1: #2a2440;
+  --dusk-2: #3a3357;
+  --dusk-ink: #efe9ff;
+  --dusk-ink-soft: #b7adda;
+  --glow-rose: #ff9ec4;
+  --glow-gold: #ffd98a;
+
+  --font-display: "Fraunces Variable", "Fraunces", Georgia, serif;
+  --font-body: "Hanken Grotesk Variable", "Hanken Grotesk", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
+
+  --radius: 18px;
+  --radius-sm: 12px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 6px 18px rgba(74, 54, 32, 0.06);
+  --shadow: 0 18px 48px rgba(74, 54, 32, 0.09);
+  --shadow-felt: 0 26px 60px rgba(28, 18, 50, 0.32);
+
+  --sidebar-w: 244px;
+}

@@ -1,0 +1,22 @@
+# Version control
+.git
+
+# Python caches
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.ruff_cache
+
+# Runtime data — volume-mounted, not baked in
+data/
+Applications/
+
+# Tool / editor artifacts
+.playwright-mcp/
+.claude/
+Reference/
+
+# Misc
+*.egg-info
+.env

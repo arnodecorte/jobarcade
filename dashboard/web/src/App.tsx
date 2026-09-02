@@ -1,0 +1,109 @@
+import { AnimatePresence, motion } from "framer-motion";
+import { getCompanies, getGmailEvidence, getGmailStatus, getIntegrationStatus, getJobs, getStats, getSummary } from "./lib/api";
+import type { Company, Coverage, GmailEvidence, GmailStatus, IntegrationStatus, Job, Stats, Summary } from "./lib/api";
+import { useAsync, useChameleonUpdateSplash, useFirstVisit, useHashRoute } from "./lib/hooks";
+import { DraftProvider } from "./lib/draftContext";
+import { BubbleMenu } from "./components/BubbleMenu";
+import { Loading } from "./components/Sprite";
+import { Grainient } from "./components/Grainient";
+import { AmbientAngie } from "./components/AmbientAngie";
+import { DraftOverlay } from "./components/DraftOverlay";
+import { Splash } from "./components/Splash";
+import { ChameleonUpdateSplash } from "./components/ChameleonUpdateSplash";
+import { FeedbackChip } from "./components/FeedbackChip";
+import { Today } from "./pages/Today";
+import { Pipeline } from "./pages/Pipeline";
+import { Jobs } from "./pages/Jobs";
+import { Fresh } from "./pages/Fresh";
+import { Odds } from "./pages/Odds";
+import { System } from "./pages/System";
+import { Discover } from "./pages/Discover";
+import { freshJobs } from "./lib/jobs";
+
+export type DashData = {
+  summary: Summary;
+  jobs: Job[];
+  companies: Company[];
+  coverage: Coverage;
+  stats: Stats;
+  gmail: GmailStatus;
+  gmailEvidence: GmailEvidence[];
+  integrations: IntegrationStatus;
+};
+
+export type PageProps = { data: DashData; reload: () => void; refreshing: boolean };
+
+async function loadAll(): Promise<DashData> {
+  const [summary, jobs, companies, stats, gmail, gmailEvidence, integrations] = await Promise.all([
+    getSummary(),
+    getJobs(),
+    getCompanies(),
+    getStats(),
+    getGmailStatus(),
+    getGmailEvidence(),
+    getIntegrationStatus(),
+  ]);
+  return {
+    summary,
+    jobs,
+    companies: companies.companies,
+    coverage: companies.coverage,
+    stats,
+    gmail,
+    gmailEvidence: gmailEvidence.evidence,
+    integrations,
+  };
+}
+
+export function App() {
+  const route = useHashRoute();
+  const { data, error, loading, reload } = useAsync(loadAll);
+  const [showSplash, dismissSplash] = useFirstVisit();
+  const [showChameleonUpdate, dismissChameleonUpdate] = useChameleonUpdateSplash();
+  const freshCount = data ? freshJobs(data.jobs).rows.length : 0;
+
+  return (
+    <DraftProvider onGenerated={reload}>
+      <Grainient />
+      {showSplash && route === "today" && <Splash onDismiss={dismissSplash} />}
+      {!showSplash && showChameleonUpdate && <ChameleonUpdateSplash onDismiss={dismissChameleonUpdate} />}
+      <BubbleMenu route={route} freshCount={freshCount} />
+      <div className="shell">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.main
+            key={data ? route : "loading"}
+            className="main"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, y: -8, transition: { duration: 0.14 } }}
+          >
+            {error && <div className="banner-error">Could not load dashboard: {error}</div>}
+            {!data && loading && <Loading />}
+            {data && (() => {
+              const props: PageProps = { data, reload, refreshing: loading };
+              switch (route) {
+                case "pipeline":
+                  return <Pipeline {...props} />;
+                case "jobs":
+                  return <Jobs {...props} />;
+                case "fresh":
+                  return <Fresh {...props} />;
+                case "odds":
+                  return <Odds {...props} />;
+                case "discover":
+                  return <Discover {...props} />;
+                case "system":
+                  return <System {...props} />;
+                default:
+                  return <Today {...props} />;
+              }
+            })()}
+          </motion.main>
+        </AnimatePresence>
+      </div>
+      <DraftOverlay />
+      <FeedbackChip />
+      <AmbientAngie />
+    </DraftProvider>
+  );
+}

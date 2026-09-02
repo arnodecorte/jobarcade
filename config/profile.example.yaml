@@ -1,0 +1,49 @@
+candidate:
+  name: "Alex Morgan"
+  tagline: "Product Marketing & Growth Strategist"
+  contact:
+    email: "alex.morgan@example.com"
+    phone: "+31 6 12345678"
+    location: "Amsterdam, Netherlands"
+    linkedin: "linkedin.com/in/alex-morgan"
+    linkedin_url: "https://www.linkedin.com/in/alex-morgan/"
+    portfolio: "alexmorgan.design"
+    portfolio_url: "https://alexmorgan.design"
+  
+  career_facts: |
+    - Senior Marketing Specialist, TechCorp (SaaS), Amsterdam, 2023-Present: Owned B2B demand gen, ran paid acquisition campaigns, managed content calendars, increased inbound leads by 35%.
+    - Growth Marketing Coordinator, StartupX, 2021-2023: Built lifecycle email automations in HubSpot, executed A/B tests on landing pages, boosted trial-to-paid conversion by 18%.
+    - Marketing Assistant, Agency Y, 2019-2021: Produced social media assets, drafted blog posts, and reported campaign analytics.
+
+  skills:
+    - "Brand Strategy & Multichannel Consistency"
+    - "Lifecycle Marketing & CRM Automation"
+    - "Paid & Organic Acquisition (LinkedIn, Meta)"
+    - "KPI Dashboards & Performance Reporting (SQL, Power BI)"
+    - "Creative Asset Production (Figma, Canva, Copywriting)"
+
+  languages:
+    - ["English", "Native speaker"]
+    - ["Dutch", "Professional working proficiency"]
+
+  education:
+    - deg: "BSc International Business Administration"
+      school: "University of Amsterdam"
+      notes:
+        - "Specialization in Digital Marketing & Consumer Behavior"
+
+  certifications:
+    - "HubSpot Inbound Marketing Certified, 2023"
+    - "Google Analytics Individual Qualification, 2022"
+
+target_preferences:
+  target_roles:
+    - "Marketing Manager"
+    - "Product Marketing Manager"
+    - "Growth Marketing Specialist"
+    - "Content Strategist"
+  target_locations:
+    - "Amsterdam"
+    - "Rotterdam"
+    - "Utrecht"
+    - "Remote"
