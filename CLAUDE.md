@@ -1,11 +1,41 @@
-# CLAUDE.md
+# CLAUDE.md — Agent & Collaborator Guidelines
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-**[AGENTS.md](AGENTS.md) mirrors this file** for other agents — keep the two in sync when either changes.
+Guidance for coding agents (Codex, Claude Code, Cursor, Copilot, Antigravity, Aider, etc.) working in this repository.
+**This file mirrors [AGENTS.md](AGENTS.md)** — keep the two in sync when either changes.
+
+---
+
+## 🤝 Collaborative Agent Rules
+
+When contributing to JobArcade, agents must follow these guidelines:
+
+1. **Privacy & Candidate Decoupling (Strict)**:
+   - Never commit candidate-specific names, emails, phone numbers, or private work histories in code, tests, or Typst templates.
+   - All personal data must be loaded dynamically from `config/profile.yaml` via `jobhunt.profile.load_candidate_profile()`.
+   - Never stage or commit `config/profile.yaml`, `data/*.sqlite`, `data/*.csv`, or `.env`.
+
+2. **Verification Before Assertions**:
+   - Always run verification before declaring work done or submitting a PR:
+     ```bash
+     python -m jobhunt validate
+     pytest -v
+     ```
+   - Evidence before assertions always: do not claim tests pass without running them and checking output.
+
+3. **Git Hygiene**:
+   - Work on feature branches: `feat/<feature>`, `fix/<bug>`, `docs/<topic>`.
+   - Use conventional commit messages: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`.
+   - Keep commits atomic and focused.
+
+4. **Template & Engine Restraint**:
+   - Keep dependencies lean. Do not add headless browser automation frameworks (Playwright/Selenium) or heavy scraping fleets.
+   - Respect Typst compile guard-rails (page budgets and character budgets).
+
+---
 
 ## Purpose
 
-Job Application & AI Tailoring Hub is a standalone, local-first workspace for managing job applications, tailoring CVs and motivation letters using Ollama LLMs, and compiling pixel-perfect PDFs with Typst.
+**JobArcade** is a standalone, local-first workspace for managing job applications, tailoring CVs and motivation letters using Ollama LLMs, and compiling pixel-perfect PDFs with Typst.
 
 The workflow is:
 1. Maintain candidate profile and verified career facts in `config/profile.yaml` (starter at `config/profile.example.yaml`).
@@ -20,8 +50,6 @@ Candidate information is decoupled from the codebase:
 - If `config/profile.yaml` is absent, it falls back to `config/profile.example.yaml`.
 - Ground-truth career facts live in `profile.career_facts` and are injected dynamically into AI tailoring prompts.
 - Typst templates consume profile facts dynamically via `--input profile=<path>` or default `config/profile.yaml`.
-
-**Rule**: Never hardcode personal names, emails, phone numbers, or career facts in code or Typst template files.
 
 ## Directory Structure
 
@@ -50,6 +78,7 @@ jobhunt/                     # Python backend & CLI
 2. `python -m jobhunt dashboard [--host 0.0.0.0] [--port 8765]` — launch the web dashboard and REST API.
 3. `python -m jobhunt scrape-listing "<URL>"` — extract role details from a job listing URL.
 4. `python -m jobhunt tailor-drafts` — run batch AI tailoring on draft applications.
+5. `python -m jobhunt build --company <Company> --role <Role>` — compile Typst PDFs from CLI.
 
 ## CV & Letter Tailoring (Typst)
 
