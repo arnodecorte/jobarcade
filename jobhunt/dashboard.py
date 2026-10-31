@@ -2332,6 +2332,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/style/preview":
                 self._send_png(render_style_preview(payload))
                 return
+            if parsed.path == "/api/demo/seed":
+                from jobhunt.demo_seed import seed_demo
+
+                with db_session() as conn:
+                    self._send_json(seed_demo(conn, APPLICATIONS_DIR))
+                return
             if parsed.path == "/api/onboarding/step":
                 with db_session() as conn:
                     self._send_json(set_onboarding_step(conn, str(payload.get("step") or "")))
@@ -2603,6 +2609,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     delete_application(app_match.group(1), job_id, conn)
                 self.send_response(HTTPStatus.NO_CONTENT)
                 self.end_headers()
+                return
+            if parsed.path == "/api/demo":
+                from jobhunt.demo_seed import clear_demo
+
+                with db_session() as conn:
+                    self._send_json(clear_demo(conn, APPLICATIONS_DIR))
                 return
             if parsed.path == "/api/gmail/account":
                 with db_session() as conn:

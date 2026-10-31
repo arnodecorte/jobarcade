@@ -208,6 +208,25 @@ def cmd_gmail_sync(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_seed_demo(args: argparse.Namespace) -> int:
+    from jobhunt.dashboard import APPLICATIONS_DIR
+    from jobhunt.demo_seed import clear_demo, seed_demo
+
+    conn = init_db(connect(DB_PATH))
+    try:
+        if args.clear:
+            print(f"Removed {clear_demo(conn, APPLICATIONS_DIR)['removed']} demo job(s).")
+        else:
+            result = seed_demo(conn, APPLICATIONS_DIR)
+            if result["jobs"]:
+                print(f"Seeded {result['jobs']} demo jobs and a draft at {result['draft_folder']}.")
+            else:
+                print("Demo data already present; nothing seeded.")
+    finally:
+        conn.close()
+    return 0
+
+
 def cmd_dashboard(args: argparse.Namespace) -> int:
     serve_dashboard(host=args.host, port=args.port)
     return 0
@@ -400,6 +419,10 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard.add_argument("--host", default="127.0.0.1", help="Host/interface to bind.")
     dashboard.add_argument("--port", type=int, default=8765, help="Port to bind.")
     dashboard.set_defaults(func=cmd_dashboard)
+
+    seed_demo_cmd = sub.add_parser("seed-demo", help="Add (or --clear) fictional sample jobs and a draft.")
+    seed_demo_cmd.add_argument("--clear", action="store_true", help="Remove the demo jobs and draft instead.")
+    seed_demo_cmd.set_defaults(func=cmd_seed_demo)
 
     build = sub.add_parser("build", help="Compile Typst CV and motivation letter PDFs for an application.")
     build.add_argument("--app", required=True, help="Application folder name, e.g. Paramount-Content-Coordinator.")
