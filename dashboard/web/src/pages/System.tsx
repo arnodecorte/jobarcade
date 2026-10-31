@@ -33,6 +33,8 @@ function sortCompanies(companies: Company[]): Company[] {
 export function System({ data, reload, refreshing }: PageProps) {
   const { companies, coverage, summary } = data;
   const [msg, setMsg] = useState("");
+  const [togglingScraper, setTogglingScraper] = useState(false);
+  const scraperOn = data.integrations.features?.scraper ?? false;
   const health = summary.scraper_health_counts || {};
   const rows = sortCompanies(companies);
 
@@ -47,11 +49,14 @@ export function System({ data, reload, refreshing }: PageProps) {
   }
 
   async function toggleScraper(on: boolean) {
+    setTogglingScraper(true);
     try {
       await setScraperFeature(on);
       reload();
     } catch (err) {
       setMsg((err as Error).message);
+    } finally {
+      setTogglingScraper(false);
     }
   }
 
@@ -82,7 +87,7 @@ export function System({ data, reload, refreshing }: PageProps) {
       <PageHeader
         kicker="Under the hood"
         title="System"
-        sub="Scraper coverage, company directory, and the engineering views."
+        sub={scraperOn ? "Scraper coverage, company directory, and the engineering views." : "Settings, integrations and health."}
         onRefresh={reload}
         refreshing={refreshing}
       />
@@ -102,7 +107,8 @@ export function System({ data, reload, refreshing }: PageProps) {
             <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input
                 type="checkbox"
-                checked={data.integrations.features?.scraper ?? false}
+                checked={scraperOn}
+                disabled={togglingScraper}
                 onChange={(e) => toggleScraper(e.target.checked)}
               />
               Experimental: URL scraping (may break on some sites)
@@ -126,51 +132,55 @@ export function System({ data, reload, refreshing }: PageProps) {
           <IntegrationSettings integrations={data.integrations} reload={reload} />
         </SystemDisclosure>
 
-        <SystemDisclosure
-          title="Companies"
-          summary={`${companies.length} tracked · sorted by scraper health`}
-          status={`${health.failed || 0} broken`}
-        >
-          <div className="system-company-list">
-          {rows.slice(0, 60).map((c) => (
-            <a key={c.company} className="company-row" href={c.careers_url} target="_blank" rel="noreferrer">
-              <CompanyLogo company={c.company} domain={c.logo_domain} url={c.logo_url} size="sm" />
-              <div className="meta">
-                <strong>{c.company}</strong>
-                <span>{c.job_count} roles · {c.health?.strategy || c.scraper_type}</span>
-                {(c.health?.error || c.health?.message) && (
-                  <span style={{ color: "var(--rose-deep)" }}>{c.health.error || c.health.message}</span>
-                )}
+        {scraperOn && (
+          <>
+            <SystemDisclosure
+              title="Companies"
+              summary={`${companies.length} tracked · sorted by scraper health`}
+              status={`${health.failed || 0} broken`}
+            >
+              <div className="system-company-list">
+              {rows.slice(0, 60).map((c) => (
+                <a key={c.company} className="company-row" href={c.careers_url} target="_blank" rel="noreferrer">
+                  <CompanyLogo company={c.company} domain={c.logo_domain} url={c.logo_url} size="sm" />
+                  <div className="meta">
+                    <strong>{c.company}</strong>
+                    <span>{c.job_count} roles · {c.health?.strategy || c.scraper_type}</span>
+                    {(c.health?.error || c.health?.message) && (
+                      <span style={{ color: "var(--rose-deep)" }}>{c.health.error || c.health.message}</span>
+                    )}
+                  </div>
+                  <span className={`health ${c.health?.status || (c.scraper_type === "manual_review" ? "manual_review" : "unknown")}`}>
+                    {HEALTH_LABEL[c.health?.status || (c.scraper_type === "manual_review" ? "manual_review" : "unknown")]}
+                  </span>
+                </a>
+              ))}
               </div>
-              <span className={`health ${c.health?.status || (c.scraper_type === "manual_review" ? "manual_review" : "unknown")}`}>
-                {HEALTH_LABEL[c.health?.status || (c.scraper_type === "manual_review" ? "manual_review" : "unknown")]}
-              </span>
-            </a>
-          ))}
-          </div>
-        </SystemDisclosure>
+            </SystemDisclosure>
 
-        <SystemDisclosure
-          title="Scraper health"
-          summary={`${coverage.dedicated} dedicated · ${coverage.manual_review} manual · ${coverage.disabled} disabled`}
-          status={`${coverage.promoted_percent}% coverage`}
-        >
-          <div className="system-compact-metric">
-            <div className="metric" style={{ border: "none", boxShadow: "none", padding: "8px 0" }}>
-              <div className="value" style={{ fontSize: 40 }}>{coverage.promoted_percent}%</div>
-              <div className="cap">dedicated scraper coverage</div>
-            </div>
-            <div className="coverage-meter" aria-label={`${coverage.promoted_percent}% coverage`}>
-              <span style={{ width: `${coverage.promoted_percent}%` }} />
-            </div>
-            <div className="muted" style={{ fontSize: 12.5 }}>
-              {coverage.dedicated} dedicated · {coverage.manual_review} manual · {coverage.disabled} disabled
-            </div>
-            <div className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>
-              {health.failed || 0} broken · {health.warning || 0} need check · {health.ok || 0} healthy
-            </div>
-          </div>
-        </SystemDisclosure>
+            <SystemDisclosure
+              title="Scraper health"
+              summary={`${coverage.dedicated} dedicated · ${coverage.manual_review} manual · ${coverage.disabled} disabled`}
+              status={`${coverage.promoted_percent}% coverage`}
+            >
+              <div className="system-compact-metric">
+                <div className="metric" style={{ border: "none", boxShadow: "none", padding: "8px 0" }}>
+                  <div className="value" style={{ fontSize: 40 }}>{coverage.promoted_percent}%</div>
+                  <div className="cap">dedicated scraper coverage</div>
+                </div>
+                <div className="coverage-meter" aria-label={`${coverage.promoted_percent}% coverage`}>
+                  <span style={{ width: `${coverage.promoted_percent}%` }} />
+                </div>
+                <div className="muted" style={{ fontSize: 12.5 }}>
+                  {coverage.dedicated} dedicated · {coverage.manual_review} manual · {coverage.disabled} disabled
+                </div>
+                <div className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>
+                  {health.failed || 0} broken · {health.warning || 0} need check · {health.ok || 0} healthy
+                </div>
+              </div>
+            </SystemDisclosure>
+          </>
+        )}
 
         <SystemDisclosure title="Add company" summary="Extend the tracked careers directory">
             <form onSubmit={onSubmit}>
