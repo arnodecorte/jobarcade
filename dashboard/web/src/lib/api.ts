@@ -646,3 +646,19 @@ export const deleteDraft = async (folder: string, jobId?: number): Promise<void>
   const payload = await res.json().catch(() => ({}));
   throw new Error((payload as { error?: string }).error || `Delete failed: ${res.status}`);
 };
+
+export type Goals = {
+  daily_goal: number;
+  odds_prior: number;
+  odds_cadence: number;
+  last_celebrated_date: string;
+  configured: boolean;
+};
+
+export const getGoals = () => api<Goals>("/api/goals");
+
+export const saveGoals = (body: Partial<Goals>) =>
+  api<Goals>("/api/goals", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });

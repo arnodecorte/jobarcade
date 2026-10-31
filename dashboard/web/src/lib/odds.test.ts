@@ -40,3 +40,25 @@ describe("odds math", () => {
     expect(effectiveRate(0.02, 0.05, 20)).toBe(0.05);
   });
 });
+
+import { DEFAULT_PRIOR, PRIOR_SOURCES, celebrationStats, rejectionMessage } from "./odds";
+
+describe("cited prior and messaging", () => {
+  it("defaults to a cited 3% prior", () => {
+    expect(DEFAULT_PRIOR).toBe(0.03);
+    expect(PRIOR_SOURCES).toHaveLength(2);
+    for (const s of PRIOR_SOURCES) expect(s.url.startsWith("https://")).toBe(true);
+  });
+
+  it("celebrationStats reports probability gain and days saved", () => {
+    const c = celebrationStats(10, 13, 0.03, 3);
+    expect(c.probAfter).toBeGreaterThan(c.probBefore);
+    expect(c.daysSaved).toBe(1);
+    expect(c.probAfter).toBeCloseTo(1 - 0.97 ** 13, 6);
+  });
+
+  it("rejectionMessage counts rolls to 80% or says keep rolling", () => {
+    expect(rejectionMessage(0, 0.03)).toContain("53 more");
+    expect(rejectionMessage(100, 0.03)).toContain("keep rolling");
+  });
+});

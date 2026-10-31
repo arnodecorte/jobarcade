@@ -61,3 +61,32 @@ export function formatEta(days: number): string {
   if (days < 60) return `~${Math.round(days / 7)} weeks`;
   return `~${Math.round(days / 30)} months`;
 }
+
+/** Cited cold-application interview rate, used until the user tunes their own. */
+export const DEFAULT_PRIOR = 0.03;
+
+export type PriorSource = { label: string; figure: string; url: string };
+
+export const PRIOR_SOURCES: PriorSource[] = [
+  { label: "CareerPlug 2024 Recruiting Metrics (employer data, 10M+ applications)", figure: "≈3% of applicants reach an interview", url: "https://www.careerplug.com/recruiting-metrics-and-kpis/" },
+  { label: "Huntr 2025 Annual Job Search Trends (job-seeker tracker data)", figure: "≈3.5% average; 2.7% (Jan) to 4.2% (Nov)", url: "https://huntr.co/research/2025-annual-job-search-trends-report" },
+];
+
+export type Celebration = { probBefore: number; probAfter: number; daysSaved: number; etaDays: number };
+
+/** What a batch of newly sent applications bought: odds before/after and days shaved off the ETA. */
+export function celebrationStats(sentBefore: number, sentAfter: number, p: number, cadence: number): Celebration {
+  return {
+    probBefore: cumulativeProb(sentBefore, p),
+    probAfter: cumulativeProb(sentAfter, p),
+    daysSaved: cadence > 0 ? (sentAfter - sentBefore) / cadence : 0,
+    etaDays: etaDays(sentAfter, p, cadence),
+  };
+}
+
+export function rejectionMessage(sentTotal: number, p: number): string {
+  const n = Math.max(0, appsForConfidence(p, 0.8) - sentTotal);
+  if (n === 0) return "Every no is a roll used, not a loss. The math is firmly on your side now — keep rolling.";
+  const pct = Number((p * 100).toFixed(1));
+  return `Every no is a roll used, not a loss. At ${pct}% per application, ${n} more gets you to an 80% chance of at least one interview.`;
+}

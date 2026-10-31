@@ -2,13 +2,23 @@ import type { PageProps } from "../App";
 import { PageHeader } from "../components/PageHeader";
 import { OddsCurve } from "../components/OddsCurve";
 import { StreakRail } from "../components/StreakRail";
-import { useLocalNumber } from "../lib/hooks";
-import { cumulativeProb, effectiveRate, etaDays, formatEta } from "../lib/odds";
+import { useEffect, useRef, useState } from "react";
+import { saveGoals } from "../lib/api";
+import type { Goals } from "../lib/api";
+import { PRIOR_SOURCES, cumulativeProb, effectiveRate, etaDays, formatEta } from "../lib/odds";
 
 export function Odds({ data, reload, refreshing }: PageProps) {
   const { stats } = data;
-  const [p, setP] = useLocalNumber("odds.p", 0.02);
-  const [cadence, setCadence] = useLocalNumber("odds.cadence", 3);
+  const [p, setP] = useState(data.goals.odds_prior);
+  const [cadence, setCadence] = useState(data.goals.odds_cadence);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const persist = (patch: Partial<Goals>) => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      saveGoals(patch).then(reload).catch(() => undefined);
+    }, 400);
+  };
 
   const lifecycle = stats.lifecycle;
   const mature = lifecycle.matured_denominator;
@@ -103,11 +113,26 @@ export function Odds({ data, reload, refreshing }: PageProps) {
                 max={0.08}
                 step={0.005}
                 value={p}
-                onChange={(e) => setP(Number(e.target.value))}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setP(v);
+                  persist({ odds_prior: v });
+                }}
               />
               <div className="hint">
-                Industry response→interview is often 2–5%. Lower it to stay humble, raise it as you learn yours.
+                Starts at a cited 3%. Lower it to stay humble, raise it as you learn yours.
               </div>
+              <details className="hint">
+                <summary>Why 3%?</summary>
+                <ul>
+                  {PRIOR_SOURCES.map((src) => (
+                    <li key={src.url}>
+                      <a href={src.url} target="_blank" rel="noreferrer">{src.label}</a>: {src.figure}
+                    </li>
+                  ))}
+                </ul>
+                <p>Published averages for cold applications. Tailored applications often do better; adjust the slider to match your own view.</p>
+              </details>
             </div>
             <div className="felt-control">
               <label>
@@ -119,7 +144,11 @@ export function Odds({ data, reload, refreshing }: PageProps) {
                 max={10}
                 step={1}
                 value={cadence}
-                onChange={(e) => setCadence(Number(e.target.value))}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setCadence(v);
+                  persist({ odds_cadence: v });
+                }}
               />
               <div className="hint">
                 Your actual last-7-day pace: <b>{stats.actual_cadence_7d}/day</b>. Aim a little above it.

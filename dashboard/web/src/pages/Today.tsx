@@ -6,7 +6,7 @@ import { EnergyRing } from "../components/EnergyRing";
 import { JobRow } from "../components/JobRow";
 import { Companion } from "../components/Companion";
 import { InterviewMilestone } from "../components/InterviewMilestone";
-import { navigate, useLocalNumber } from "../lib/hooks";
+import { navigate } from "../lib/hooks";
 import { formatDate, OUTCOME_STATUSES, PIPELINE_STATUSES, STATUS_LABELS } from "../lib/format";
 import { applyTodayQueue } from "../lib/jobs";
 import { effectiveRate, etaDays, formatEta } from "../lib/odds";
@@ -32,9 +32,7 @@ function CountUp({ value }: { value: number }) {
 export function Today({ data, reload, refreshing }: PageProps) {
   const { summary, stats, jobs } = data;
   const counts = summary.status_counts || {};
-  const [goal] = useLocalNumber("energy.goal", 3);
-  const [p] = useLocalNumber("odds.p", 0.02);
-  const [cadence] = useLocalNumber("odds.cadence", 3);
+  const { daily_goal: goal, odds_prior: p, odds_cadence: cadence } = data.goals;
 
   const queue = applyTodayQueue(jobs);
   const lifecycle = stats.lifecycle;

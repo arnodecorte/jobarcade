@@ -123,17 +123,3 @@ export function useSeenInterviewIds(): [Set<number>, (id: number) => void] {
   };
   return [seen, markSeen];
 }
-
-/** localStorage-backed state for the tunable odds assumptions. */
-export function useLocalNumber(key: string, fallback: number): [number, (v: number) => void] {
-  const [value, setValue] = useState<number>(() => {
-    const raw = window.localStorage.getItem(key);
-    const parsed = raw == null ? NaN : Number(raw);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  });
-  const set = (v: number) => {
-    setValue(v);
-    window.localStorage.setItem(key, String(v));
-  };
-  return [value, set];
-}

@@ -1,6 +1,7 @@
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { getCompanies, getGmailEvidence, getGmailStatus, getIntegrationStatus, getJobs, getStats, getSummary } from "./lib/api";
-import type { Company, Coverage, GmailEvidence, GmailStatus, IntegrationStatus, Job, Stats, Summary } from "./lib/api";
+import { getCompanies, getGoals, getGmailEvidence, getGmailStatus, getIntegrationStatus, getJobs, getStats, getSummary, saveGoals } from "./lib/api";
+import type { Company, Coverage, Goals, GmailEvidence, GmailStatus, IntegrationStatus, Job, Stats, Summary } from "./lib/api";
 import { useAsync, useChameleonUpdateSplash, useFirstVisit, useHashRoute } from "./lib/hooks";
 import { DraftProvider } from "./lib/draftContext";
 import { BubbleMenu } from "./components/BubbleMenu";
@@ -19,6 +20,7 @@ import { Odds } from "./pages/Odds";
 import { System } from "./pages/System";
 import { Discover } from "./pages/Discover";
 import { freshJobs } from "./lib/jobs";
+import { localGoalsToMigrate } from "./lib/goals";
 
 export type DashData = {
   summary: Summary;
@@ -29,12 +31,13 @@ export type DashData = {
   gmail: GmailStatus;
   gmailEvidence: GmailEvidence[];
   integrations: IntegrationStatus;
+  goals: Goals;
 };
 
 export type PageProps = { data: DashData; reload: () => void; refreshing: boolean };
 
 async function loadAll(): Promise<DashData> {
-  const [summary, jobs, companies, stats, gmail, gmailEvidence, integrations] = await Promise.all([
+  const [summary, jobs, companies, stats, gmail, gmailEvidence, integrations, goals] = await Promise.all([
     getSummary(),
     getJobs(),
     getCompanies(),
@@ -42,6 +45,7 @@ async function loadAll(): Promise<DashData> {
     getGmailStatus(),
     getGmailEvidence(),
     getIntegrationStatus(),
+    getGoals(),
   ]);
   return {
     summary,
@@ -52,6 +56,7 @@ async function loadAll(): Promise<DashData> {
     gmail,
     gmailEvidence: gmailEvidence.evidence,
     integrations,
+    goals,
   };
 }
 
@@ -60,6 +65,18 @@ export function App() {
   const { data, error, loading, reload } = useAsync(loadAll);
   const [showSplash, dismissSplash] = useFirstVisit();
   const [showChameleonUpdate, dismissChameleonUpdate] = useChameleonUpdateSplash();
+  const migrated = useRef(false);
+  useEffect(() => {
+    if (!data || migrated.current) return;
+    migrated.current = true;
+    let local: Partial<Goals> | null = null;
+    try {
+      local = localGoalsToMigrate(window.localStorage, data.goals);
+    } catch {
+      local = null;
+    }
+    if (local) saveGoals(local).then(reload).catch(() => undefined);
+  }, [data]);
   const freshCount = data ? freshJobs(data.jobs).rows.length : 0;
 
   return (
