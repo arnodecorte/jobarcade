@@ -1,0 +1,86 @@
+/* The single high-energy surface: a cozy night casino table. */
+.felt {
+  position: relative; overflow: hidden;
+  border-radius: 24px; padding: 28px 30px; color: var(--dusk-ink);
+  background:
+    radial-gradient(900px 420px at 18% -10%, rgba(255, 158, 196, 0.22) 0%, transparent 60%),
+    radial-gradient(700px 380px at 112% 120%, rgba(255, 217, 138, 0.16) 0%, transparent 55%),
+    linear-gradient(160deg, var(--dusk-2) 0%, var(--dusk-1) 100%);
+  box-shadow: var(--shadow-felt);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.felt::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 4px 4px; opacity: 0.5; mix-blend-mode: screen;
+}
+.felt .felt-kicker { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--glow-rose); font-weight: 700; }
+.felt h2 { color: var(--dusk-ink); font-size: 22px; margin-top: 4px; }
+.felt .felt-sub { color: var(--dusk-ink-soft); font-size: 13px; }
+
+.eta-hero { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 6px 0 2px; }
+.eta-hero .eta-num {
+  font-family: var(--font-display); font-weight: 600; font-size: clamp(40px, 8vw, 72px); line-height: 1;
+  background: linear-gradient(120deg, var(--glow-gold), var(--glow-rose));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 38px rgba(255, 158, 196, 0.28);
+}
+.eta-hero .eta-label { color: var(--dusk-ink-soft); font-size: 14px; }
+
+.odds-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(220px, 1fr); gap: 18px; align-items: stretch; }
+.curve-card { position: relative; z-index: 1; }
+.curve-svg { width: 100%; height: auto; display: block; }
+
+.maturity-strip {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+  margin: 16px 0 4px; position: relative; z-index: 1;
+}
+.maturity-strip.compact { margin-top: 8px; }
+.maturity-strip div {
+  min-width: 0; border-radius: 8px; padding: 10px 11px;
+  background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.maturity-strip span {
+  display: block; color: var(--dusk-ink); font-family: var(--font-mono);
+  font-size: 18px; font-weight: 700; line-height: 1.1; overflow-wrap: anywhere;
+}
+.maturity-strip small {
+  display: block; margin-top: 4px; color: var(--dusk-ink-soft);
+  font-size: 11px; font-weight: 700;
+}
+
+/* sliders on the felt */
+.felt-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; margin-top: 22px; position: relative; z-index: 1; }
+.felt-control label { display: flex; justify-content: space-between; font-size: 12px; color: var(--dusk-ink-soft); font-weight: 600; margin-bottom: 8px; }
+.felt-control label b { color: var(--dusk-ink); font-family: var(--font-mono); }
+.felt-control input[type="range"] { width: 100%; accent-color: var(--glow-rose); }
+.felt-control .hint { font-size: 11px; color: var(--dusk-ink-soft); margin-top: 5px; }
+.felt-control .hint b { color: var(--glow-gold); font-family: var(--font-mono); }
+
+/* streak rail */
+.rail { display: grid; gap: 12px; }
+.rail-tile {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px; box-shadow: var(--shadow-sm);
+}
+.rail-tile .rail-num { font-family: var(--font-display); font-size: 30px; font-weight: 600; line-height: 1; display: flex; align-items: center; gap: 8px; }
+.rail-tile .rail-cap { font-size: 12px; color: var(--ink-soft); font-weight: 600; margin-top: 3px; }
+.flame { filter: drop-shadow(0 0 6px rgba(255, 158, 100, 0.6)); }
+
+/* 90-day apply heatmap */
+.heat { display: grid; grid-template-columns: repeat(15, 1fr); gap: 4px; margin-top: 4px; }
+.heat i { aspect-ratio: 1; border-radius: 4px; background: var(--bg-2); }
+.heat i.l1 { background: var(--rose-soft); }
+.heat i.l2 { background: var(--rose); }
+.heat i.l3 { background: var(--rose-deep); }
+.heat i.l4 { background: #b23a63; }
+
+.badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; border-radius: var(--radius-pill); padding: 5px 11px; background: var(--bg-2); color: var(--ink-faint); }
+.badge.earned { background: linear-gradient(120deg, var(--butter-soft), var(--rose-soft)); color: var(--rose-deep); box-shadow: inset 0 0 0 1px rgba(214, 91, 128, 0.18); }
+
+@media (max-width: 920px) {
+  .odds-grid { grid-template-columns: 1fr; }
+  .felt-controls { grid-template-columns: 1fr; }
+  .maturity-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

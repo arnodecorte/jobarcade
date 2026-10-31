@@ -1,0 +1,10 @@
+# JobArcade Cursor AI Rules
+
+You are working on JobArcade, a local-first job application tracking & AI tailoring studio.
+
+## Critical Instructions:
+1. **Zero PII Leakage**: Never hardcode personal names, emails, phone numbers, or candidate career statements in code or Typst files. All candidate information must be loaded dynamically from `config/profile.yaml` via `jobhunt.profile`.
+2. **Verification Before Declaring Complete**: Always run `python -m jobhunt validate` and `pytest -v` before finalizing any changes. Check that Typst compilation succeeds with zero warnings.
+3. **No Heavy Scrapers**: Do not add browser automation (Playwright/Selenium) or heavy web crawling dependencies. Keep the single-job URL extractor lightweight.
+4. **Git Hygiene**: Use conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`) and atomic changes.
+5. **Typst Guard-Rails**: Guard-rails in `Base/lib.typ` and `Base/cv.typ` enforce strict character limits and single/two-page budgets. Never bypass these guard-rails without explicit instruction.

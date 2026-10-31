@@ -1,0 +1,57 @@
+candidate:
+  name: "Alex Morgan"
+  tagline: "Product Marketing & Growth Strategist"
+  contact:
+    email: "alex.morgan@example.com"
+    phone: "+31 6 12345678"
+    location: "Amsterdam, Netherlands"
+    linkedin: "linkedin.com/in/alex-morgan"
+    linkedin_url: "https://www.linkedin.com/in/alex-morgan/"
+    portfolio: "alexmorgan.design"
+    portfolio_url: "https://alexmorgan.design"
+  
+  career_facts: |
+    - Senior Marketing Specialist, TechCorp (SaaS), Amsterdam, 2023-Present: Owned B2B demand gen, ran paid acquisition campaigns, managed content calendars, increased inbound leads by 35%.
+    - Growth Marketing Coordinator, StartupX, 2021-2023: Built lifecycle email automations in HubSpot, executed A/B tests on landing pages, boosted trial-to-paid conversion by 18%.
+    - Marketing Assistant, Agency Y, 2019-2021: Produced social media assets, drafted blog posts, and reported campaign analytics.
+
+  skills:
+    - "Brand Strategy & Multichannel Consistency"
+    - "Lifecycle Marketing & CRM Automation"
+    - "Paid & Organic Acquisition (LinkedIn, Meta)"
+    - "KPI Dashboards & Performance Reporting (SQL, Power BI)"
+    - "Creative Asset Production (Figma, Canva, Copywriting)"
+
+  languages:
+    - ["English", "Native speaker"]
+    - ["Dutch", "Professional working proficiency"]
+
+  education:
+    - deg: "BSc International Business Administration"
+      school: "University of Amsterdam"
+      notes:
+        - "Specialization in Digital Marketing & Consumer Behavior"
+
+  certifications:
+    - "HubSpot Inbound Marketing Certified, 2023"
+    - "Google Analytics Individual Qualification, 2022"
+
+target_preferences:
+  # Job titles you are aiming for. A term matches when all its words appear in the title.
+  target_roles: []                # e.g. ["marketing manager", "content"]
+  # Roles you would consider but rank lower.
+  adjacent_roles: []              # e.g. ["account manager", "partnerships"]
+  # Title words that always rule a job out.
+  excluded_functions: []          # e.g. ["engineering", "recruiter"]
+  # Skip jobs whose stated experience floor is above this many years (null = no limit).
+  max_years_experience: null      # e.g. 4
+  exclude_senior_titles: false    # true hides senior/director/head-of style titles
+  exclude_internships: false      # true hides internships
+  # Places you accept. Empty means any location.
+  target_locations: []            # e.g. ["Amsterdam", "Netherlands"]
+  # Cities that get a small score boost.
+  preferred_cities: []            # e.g. ["Amsterdam", "Rotterdam"]
+  # Accept fully remote roles regardless of where the company is based.
+  allow_remote: true
+  # Regex patterns in a listing that rule it out (e.g. a language you do not speak).
+  excluded_language_patterns: []  # e.g. ["fluent german", "native german"]

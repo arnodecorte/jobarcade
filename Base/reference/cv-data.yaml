@@ -1,0 +1,57 @@
+# CANONICAL REFERENCE CV — the "swiss army knife" generic strong draft.
+# This is the style/density exemplar fed to the drafting model for every new
+# application (see _reference_application_text in jobhunt/dashboard.py).
+# It must always: use grotesk_one_page, carry 4-5 roles and 12-16 bullets,
+# reflect the candidate facts schema, and compile to exactly one full page.
+# Update it deliberately when the factbank changes; never let it go stale.
+max_pages: 1
+variant: grotesk_one_page
+role_focus: marketing
+title: Product Marketing & Growth Specialist
+tagline: Full-funnel marketer combining brand strategy, lifecycle automation, and data-driven performance to scale growth.
+profile: Marketing professional who owns the end-to-end growth engine — brand positioning, campaign orchestration,
+  lifecycle email automations, and paid acquisition channels — while partnering closely with leadership and cross-functional
+  stakeholders. At TechCorp I built automated CRM nurture flows and managed multichannel campaigns increasing pipeline by 35%;
+  at StartupX I optimized onboarding funnels and boosted trial-to-paid conversion by 18%. Equally comfortable producing creative
+  assets — design, video, copy — and reporting analytics to senior leadership.
+selected_highlights: []
+experience:
+- role: Senior Marketing Specialist
+  company: TechCorp
+  period: 2023 - Present
+  location: Amsterdam, NL
+  bullets:
+  - Own the full-funnel marketing pipeline across brand, web, social, email, and paid acquisition channels.
+  - Built and deployed automated lifecycle nurture flows and personalized onboarding journeys in HubSpot.
+  - Orchestrated multichannel product launches and coordinated cross-functional go-to-market initiatives.
+  - Managed CMS content and landing page optimization with targeted copy, increasing organic inbound leads by 35%.
+  - Produced engaging video and visual collateral, expanding LinkedIn presence and community reach.
+  include: true
+- role: Growth Marketing Coordinator
+  company: StartupX
+  period: 2021 - 2023
+  location: Amsterdam, NL
+  bullets:
+  - Designed and executed iterative A/B tests across key onboarding pages, lifting trial conversion by 18%.
+  - Built real-time analytics dashboards in Power BI and Google Analytics to monitor CAC and LTV metrics.
+  - Managed weekly social content calendars and executed paid acquisition campaigns across LinkedIn and Meta.
+  - Consolidated customer feedback and usage data to inform feature marketing and product messaging.
+  include: true
+- role: Marketing Assistant
+  company: Agency Y
+  period: 2019 - 2021
+  location: Rotterdam, NL
+  bullets:
+  - Produced marketing collateral, sales one-pagers, and social media creative for 15+ client accounts.
+  - Conducted competitive research and market audits to identify high-performing campaign angles.
+  - Tracked multi-channel engagement metrics and delivered weekly executive performance summaries.
+  include: true
+- role: Brand Operations Intern
+  company: RetailCorp
+  period: 2018 - 2019
+  location: Utrecht, NL
+  bullets:
+  - Localized global brand guidelines and established internal creative templates for regional campaigns.
+  - Coordinated promotional materials and digital asset management for quarterly seasonal campaigns.
+  include: true
+additional: []
