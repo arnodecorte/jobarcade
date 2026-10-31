@@ -47,7 +47,7 @@ The workflow is:
 
 Candidate information is decoupled from the codebase:
 - Profile configuration lives in `config/profile.yaml` (loaded via `jobhunt.profile.load_candidate_profile()`).
-- If `config/profile.yaml` is absent, it falls back to `config/profile.example.yaml`.
+- If `config/profile.yaml` is absent, a blank candidate profile is returned (`config/profile.example.yaml` is documentation only and never used as a silent fallback for real builds).
 - Ground-truth career facts live in `profile.career_facts` and are injected dynamically into AI tailoring prompts.
 - The first-run setup flow writes `config/profile.yaml` and `config/default-theme.yaml`; both are git-ignored and must never be committed.
 - Typst templates consume profile facts dynamically via `--input profile=<path>` or default `config/profile.yaml`.

@@ -3,15 +3,15 @@ services:
     build: .
     container_name: jobarcade
     ports:
-      - "8765:8765"
+      - "${JOBHUNT_BIND_ADDR:-127.0.0.1}:8765:8765"
     volumes:
       - ./config:/app/config
       - ./data:/app/data
       - ./Applications:/app/Applications
     environment:
       - PYTHONUNBUFFERED=1
-      - JOBHUNT_OLLAMA_URL=http://host.docker.internal:11434
-      - JOBHUNT_OLLAMA_MODEL=qwen2.5:7b
+      - JOBHUNT_OLLAMA_URL=${JOBHUNT_OLLAMA_URL:-http://host.docker.internal:11434}
+      - JOBHUNT_OLLAMA_MODEL=${JOBHUNT_OLLAMA_MODEL:-qwen2.5:7b}
       - JOBHUNT_OLLAMA_API_KEY=${JOBHUNT_OLLAMA_API_KEY:-}
       - JOBHUNT_ENABLE_SCRAPER=${JOBHUNT_ENABLE_SCRAPER:-0}
       - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY:-}

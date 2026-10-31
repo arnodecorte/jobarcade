@@ -195,6 +195,55 @@ def test_api_key_encrypted_and_kept_when_blank(vault):
     assert "Authorization" not in ollama_headers(effective_ollama_settings(conn))
 
 
+def test_api_key_cleared_when_url_moves_to_another_host(vault):
+    conn, _ = vault
+    status = save_ollama_settings(conn, {"base_url": "https://ollama.com", "model": "m", "api_key": "sk-1"})
+    assert status["ollama"]["api_key_set"] is True
+    # Same host and port (path/trailing slash changes) keeps the key.
+    status = save_ollama_settings(conn, {"base_url": "https://ollama.com:443/", "model": "m2"})
+    assert status["ollama"]["api_key_set"] is True
+    status = save_ollama_settings(conn, {"base_url": "https://attacker.example", "model": "m"})
+    assert status["ollama"]["api_key_set"] is False
+    assert effective_ollama_settings(conn)["api_key"] == ""
+
+
+def test_api_key_cleared_when_port_changes_but_kept_with_new_key(vault):
+    conn, _ = vault
+    save_ollama_settings(conn, {"base_url": "http://10.0.0.5:11434", "model": "m", "api_key": "sk-1"})
+    assert save_ollama_settings(conn, {"base_url": "http://10.0.0.5:9999", "model": "m"})["ollama"]["api_key_set"] is False
+    status = save_ollama_settings(conn, {"base_url": "http://10.0.0.6:11434", "model": "m", "api_key": "sk-2"})
+    assert status["ollama"]["api_key_set"] is True
+    assert effective_ollama_settings(conn)["api_key"] == "sk-2"
+
+
+def test_save_ollama_settings_recovers_when_stored_api_key_undecryptable(vault):
+    conn, key_path = vault
+    save_ollama_settings(conn, {"base_url": "https://ollama.com", "model": "m", "api_key": "sk-old"})
+    # Rotate vault key so the previously encrypted ollama_api_key cannot be decrypted.
+    key_path.write_text(Fernet.generate_key().decode("ascii"), encoding="ascii")
+    status = save_ollama_settings(conn, {"base_url": "https://ollama.com", "model": "m", "api_key": "sk-new"})
+    assert status["ollama"]["api_key_set"] is True
+    assert effective_ollama_settings(conn)["api_key"] == "sk-new"
+
+
+
+def test_invalid_inherited_encryption_key_is_ignored(vault, monkeypatch, capsys):
+    conn, key_path = vault
+    monkeypatch.setenv("GMAIL_TOKEN_ENCRYPTION_KEY", "not-a-fernet-key")
+    status = integration_status(conn)
+    assert status["vault"]["ready"] is True
+    key = key_path.read_text(encoding="ascii").strip()
+    assert key != "not-a-fernet-key"
+    Fernet(key.encode("ascii"))
+    assert "GMAIL_TOKEN_ENCRYPTION_KEY" in capsys.readouterr().err
+
+
+def test_invalid_inherited_key_does_not_break_integrations_route(dashboard_server, monkeypatch):
+    monkeypatch.setenv("GMAIL_TOKEN_ENCRYPTION_KEY", "garbage")
+    status, body, _ = dashboard_server("GET", "/api/integrations")
+    assert status == 200 and body["vault"]["ready"] is True
+
+
 def test_api_key_env_fallback(vault, monkeypatch):
     conn, _ = vault
     monkeypatch.setenv("JOBHUNT_OLLAMA_API_KEY", "env-key")

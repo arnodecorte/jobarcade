@@ -137,11 +137,14 @@ Open **[http://localhost:8765](http://localhost:8765)**. A guided setup flow wal
 
 1. **AI** - point JobArcade at Ollama and test the connection.
 2. **Profile** - enter your details and verified career facts (written to the git-ignored `config/profile.yaml`).
-3. **Style** - pick a default accent colour (written to the git-ignored `config/default-theme.yaml`).
+3. **Style** - choose your default layout variant, accent colour, font, and light/dark mode (written to the git-ignored `config/default-theme.yaml`).
 4. **Chameleon** - optionally add a Firecrawl key for company brand extraction.
 5. **Goal** - set your daily application goal.
 
 You can skip setup at any time and come back to it from the System panel.
+
+> [!NOTE]
+> **Network binding:** By default, Docker binds port `8765` to `127.0.0.1` so the dashboard is only reachable on your machine. Because the dashboard has no login, only expose it on a trusted network (for example via Tailscale, or by setting `JOBHUNT_BIND_ADDR=0.0.0.0` in `.env`).
 
 ### Ollama on the host
 Install [Ollama](https://ollama.com) on your host machine (the container reaches it at `http://host.docker.internal:11434`) and pull the default model:
@@ -150,6 +153,8 @@ ollama pull qwen2.5:7b
 ```
 Any other Ollama model works too; change it in setup or via `JOBHUNT_OLLAMA_MODEL`. To use Ollama's hosted cloud API instead, add an optional API key in the setup flow or set `JOBHUNT_OLLAMA_API_KEY`.
 
+- **Linux note:** On Linux, Ollama binds to `127.0.0.1` by default. Set `OLLAMA_HOST=0.0.0.0` on the host Ollama service so the container can reach it via `host.docker.internal` (`docker-compose.yml` already maps `host.docker.internal:host-gateway`).
+
 ### Optional: Firecrawl for Brand Chameleon
 Chameleon works with local CSS/HTML heuristics out of the box. A free [Firecrawl](https://www.firecrawl.dev) key improves brand extraction for JavaScript-heavy sites; add it in setup or set `FIRECRAWL_API_KEY`.
 
@@ -157,13 +162,13 @@ Chameleon works with local CSS/HTML heuristics out of the box. A free [Firecrawl
 ```bash
 # Docker
 docker compose exec dashboard python -m jobhunt seed-demo           # fictional sample jobs and one draft
-docker compose exec dashboard python -m jobhunt seed-demo --clear   # remove them again
+docker compose exec dashboard python -m jobhunt seed-demo --clear   # remove them again (or click "Remove sample data" in System / Today)
 
 # Local install
 python -m jobhunt seed-demo [--clear]
 ```
 
-*(Optional)* Copy `.env.example` to `.env` to preset `JOBHUNT_OLLAMA_URL`, `JOBHUNT_OLLAMA_MODEL`, `JOBHUNT_OLLAMA_API_KEY` or `FIRECRAWL_API_KEY`.
+*(Optional)* Copy `.env.example` to `.env` to preset `JOBHUNT_BIND_ADDR`, `JOBHUNT_OLLAMA_URL`, `JOBHUNT_OLLAMA_MODEL`, `JOBHUNT_OLLAMA_API_KEY` or `FIRECRAWL_API_KEY`.
 
 > [!NOTE]
 > URL scraping and job discovery are **experimental and off by default**. Enable them with `JOBHUNT_ENABLE_SCRAPER=1` or the toggle in the System panel. Manual entry is the primary way to add jobs.

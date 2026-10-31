@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -17,13 +18,29 @@ def secret_key_path() -> Path:
     return Path(os.environ.get("JOBHUNT_SECRET_KEY_PATH", str(DEFAULT_KEY_PATH)))
 
 
+def _valid_inherited_key() -> str:
+    """GMAIL_TOKEN_ENCRYPTION_KEY if it is a usable Fernet key, else "" (with a warning)."""
+    inherited = os.environ.get("GMAIL_TOKEN_ENCRYPTION_KEY", "").strip()
+    if not inherited:
+        return ""
+    try:
+        Fernet(inherited.encode("ascii"))
+    except (ValueError, UnicodeEncodeError):
+        print(
+            "warning: GMAIL_TOKEN_ENCRYPTION_KEY is not a valid Fernet key; ignoring it and "
+            "generating a fresh vault key. Leave it empty, or generate one with: "
+            'python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"',
+            file=sys.stderr,
+        )
+        return ""
+    return inherited
+
+
 def load_or_create_master_key() -> str:
     path = secret_key_path()
     if path.exists():
         return path.read_text(encoding="ascii").strip()
-    inherited = os.environ.get("GMAIL_TOKEN_ENCRYPTION_KEY", "").strip()
-    key = inherited or Fernet.generate_key().decode("ascii")
-    Fernet(key.encode("ascii"))
+    key = _valid_inherited_key() or Fernet.generate_key().decode("ascii")
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
         descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -101,6 +118,15 @@ def effective_gmail_settings(conn) -> dict:
 OLLAMA_FUNCTIONS = ("draft", "refine", "classify")
 
 
+def _effective_ollama_base_url(conn) -> str:
+    return (
+        get_setting(conn, "ollama_base_url")
+        or os.environ.get("OLLAMA_BASE_URL", "").strip()
+        or os.environ.get("JOBHUNT_OLLAMA_URL", "").strip()
+        or "http://host.docker.internal:11434"
+    )
+
+
 def effective_ollama_settings(conn) -> dict:
     saved_url = get_setting(conn, "ollama_base_url")
     saved_model = get_setting(conn, "ollama_model")
@@ -115,10 +141,7 @@ def effective_ollama_settings(conn) -> dict:
         name: get_setting(conn, f"ollama_model_{name}").strip() or model for name in OLLAMA_FUNCTIONS
     }
     return {
-        "base_url": saved_url
-        or os.environ.get("OLLAMA_BASE_URL", "").strip()
-        or os.environ.get("JOBHUNT_OLLAMA_URL", "").strip()
-        or "http://host.docker.internal:11434",
+        "base_url": _effective_ollama_base_url(conn),
         "model": model,
         "api_key": saved_key or os.environ.get("JOBHUNT_OLLAMA_API_KEY", "").strip(),
         "models": models,
@@ -178,7 +201,19 @@ def clear_gmail_settings(conn) -> dict:
     return integration_status(conn)
 
 
+def _endpoint(url: str) -> tuple[str, int | None]:
+    parsed = urlparse(url)
+    try:
+        port = parsed.port
+    except ValueError:
+        port = None
+    if port is None:
+        port = {"http": 80, "https": 443}.get(parsed.scheme)
+    return (parsed.hostname or "").lower(), port
+
+
 def save_ollama_settings(conn, payload: dict) -> dict:
+    previous_url = _effective_ollama_base_url(conn)
     base_url = validate_ollama_url(str(payload.get("base_url") or ""))
     model = str(payload.get("model") or "").strip()
     if not model:
@@ -199,7 +234,10 @@ def save_ollama_settings(conn, payload: dict) -> dict:
             else:
                 delete_settings(conn, (f"ollama_model_{name}",))
     api_key = str(payload.get("api_key") or "").strip()
-    if payload.get("clear_api_key"):
+    # A stored key belongs to the server it was entered for. Pointing the URL at
+    # another host or port without a fresh key must not send the old key there.
+    moved = _endpoint(previous_url) != _endpoint(base_url)
+    if payload.get("clear_api_key") or (moved and not api_key):
         delete_settings(conn, ("ollama_api_key",))
     elif api_key:
         set_setting(conn, "ollama_api_key", api_key, encrypted=True)
