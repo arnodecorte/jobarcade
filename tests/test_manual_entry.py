@@ -4,6 +4,7 @@ import pytest
 
 from jobhunt.dashboard import create_feedback, create_manual_job
 from jobhunt.database import init_db
+from jobhunt.profile import SearchRules
 
 
 def test_create_manual_job_requires_company_and_title(tmp_path):
@@ -32,7 +33,9 @@ def test_create_manual_job_is_scored_and_tagged_manual(tmp_path):
     assert row["fit_band"] != "excluded"
 
 
-def test_create_manual_job_falls_back_to_stretch_when_assessment_excludes_it(tmp_path):
+def test_create_manual_job_falls_back_to_stretch_when_assessment_excludes_it(tmp_path, monkeypatch):
+    # Strict rules (senior titles excluded) make the assessment hard-fail this title.
+    monkeypatch.setattr("jobhunt.assessment.load_search_rules", lambda path=None: SearchRules(exclude_senior_titles=True))
     conn = init_db(tmp_path / "jobs.sqlite")
     # No description/location at all is the likeliest path to a hard-fail in assess_job.
     result = create_manual_job(conn, {"company": "Acme", "title": "Director of Global Strategy"})
@@ -41,6 +44,15 @@ def test_create_manual_job_falls_back_to_stretch_when_assessment_excludes_it(tmp
     assert row["fit_band"] == "stretch"
     assert row["score"] >= 40
     assert "Manually added" in json.loads(row["score_reasons"])
+
+
+def test_create_manual_job_with_permissive_rules_is_not_hard_failed(tmp_path):
+    conn = init_db(tmp_path / "jobs.sqlite")
+    result = create_manual_job(conn, {"company": "Acme", "title": "Director of Global Strategy"})
+
+    row = conn.execute("SELECT * FROM jobs WHERE id = ?", (result["id"],)).fetchone()
+    assert row["fit_band"] != "excluded"
+    assert "Manually added" not in json.loads(row["score_reasons"])
 
 
 def test_create_manual_job_logs_a_status_event(tmp_path):

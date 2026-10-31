@@ -898,7 +898,7 @@ def review_cv_payload(cv_data: dict, listing: str = "") -> dict:
             }
         )
 
-    tracked_terms = (
+    fallback_terms = (
         "marketing",
         "campaign",
         "content",
@@ -911,6 +911,15 @@ def review_cv_payload(cv_data: dict, listing: str = "") -> dict:
         "stakeholder",
         "reporting",
     )
+    _stop = {"and", "of", "the", "&", "for", "with"}
+    _profile = load_candidate_profile()
+    _words = {
+        word
+        for phrase in [*_profile.skills, *_profile.search.target_roles]
+        for word in re.split(r"[^\w+#&]+", str(phrase).lower())
+        if len(word) >= 3 and word not in _stop
+    }
+    tracked_terms = tuple(sorted(_words)) or fallback_terms
     listing_terms = {term for term in tracked_terms if term in listing_text}
     covered_terms = {term for term in listing_terms if term in text}
     missing_terms = sorted(listing_terms - covered_terms)

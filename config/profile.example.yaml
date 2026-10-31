@@ -37,13 +37,21 @@ candidate:
     - "Google Analytics Individual Qualification, 2022"
 
 target_preferences:
-  target_roles:
-    - "Marketing Manager"
-    - "Product Marketing Manager"
-    - "Growth Marketing Specialist"
-    - "Content Strategist"
-  target_locations:
-    - "Amsterdam"
-    - "Rotterdam"
-    - "Utrecht"
-    - "Remote"
+  # Job titles you are aiming for. A term matches when all its words appear in the title.
+  target_roles: []                # e.g. ["marketing manager", "content"]
+  # Roles you would consider but rank lower.
+  adjacent_roles: []              # e.g. ["account manager", "partnerships"]
+  # Title words that always rule a job out.
+  excluded_functions: []          # e.g. ["engineering", "recruiter"]
+  # Skip jobs whose stated experience floor is above this many years (null = no limit).
+  max_years_experience: null      # e.g. 4
+  exclude_senior_titles: false    # true hides senior/director/head-of style titles
+  exclude_internships: false      # true hides internships
+  # Places you accept. Empty means any location.
+  target_locations: []            # e.g. ["Amsterdam", "Netherlands"]
+  # Cities that get a small score boost.
+  preferred_cities: []            # e.g. ["Amsterdam", "Rotterdam"]
+  # Accept fully remote roles regardless of where the company is based.
+  allow_remote: true
+  # Regex patterns in a listing that rule it out (e.g. a language you do not speak).
+  excluded_language_patterns: []  # e.g. ["fluent german", "native german"]

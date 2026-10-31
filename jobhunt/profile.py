@@ -20,6 +20,53 @@ class CandidateContact:
     portfolio_url: str = ""
 
 
+@dataclass(frozen=True)
+class SearchRules:
+    target_roles: tuple[str, ...] = ()
+    adjacent_roles: tuple[str, ...] = ()
+    excluded_functions: tuple[str, ...] = ()
+    max_years_experience: int | None = None
+    exclude_senior_titles: bool = False
+    exclude_internships: bool = False
+    accepted_locations: tuple[str, ...] = ()
+    preferred_cities: tuple[str, ...] = ()
+    allow_remote: bool = True
+    excluded_language_patterns: tuple[str, ...] = ()
+
+
+def _str_tuple(value) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        value = [value]
+    return tuple(str(v).strip() for v in value if str(v).strip())
+
+
+def _opt_int(value) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _search_rules_from_prefs(prefs: dict) -> SearchRules:
+    allow_remote = prefs.get("allow_remote")
+    return SearchRules(
+        target_roles=_str_tuple(prefs.get("target_roles")),
+        adjacent_roles=_str_tuple(prefs.get("adjacent_roles")),
+        excluded_functions=_str_tuple(prefs.get("excluded_functions")),
+        max_years_experience=_opt_int(prefs.get("max_years_experience")),
+        exclude_senior_titles=bool(prefs.get("exclude_senior_titles", False)),
+        exclude_internships=bool(prefs.get("exclude_internships", False)),
+        accepted_locations=_str_tuple(prefs.get("target_locations")),
+        preferred_cities=_str_tuple(prefs.get("preferred_cities")),
+        allow_remote=True if allow_remote is None else bool(allow_remote),
+        excluded_language_patterns=_str_tuple(prefs.get("excluded_language_patterns")),
+    )
+
+
 @dataclass
 class CandidateProfile:
     name: str = "Candidate Name"
@@ -32,6 +79,7 @@ class CandidateProfile:
     certifications: list[str] = field(default_factory=list)
     target_roles: list[str] = field(default_factory=list)
     target_locations: list[str] = field(default_factory=list)
+    search: SearchRules = field(default_factory=SearchRules)
 
 
 def load_candidate_profile(path: Path | None = None) -> CandidateProfile:
@@ -44,7 +92,7 @@ def load_candidate_profile(path: Path | None = None) -> CandidateProfile:
     raw = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
     cand = raw.get("candidate", {})
     contact_data = cand.get("contact", {})
-    target_prefs = raw.get("target_preferences", {})
+    target_prefs = raw.get("target_preferences") or {}
 
     contact = CandidateContact(
         email=str(contact_data.get("email") or "").strip(),
@@ -67,7 +115,27 @@ def load_candidate_profile(path: Path | None = None) -> CandidateProfile:
         certifications=list(cand.get("certifications") or []),
         target_roles=list(target_prefs.get("target_roles") or []),
         target_locations=list(target_prefs.get("target_locations") or []),
+        search=_search_rules_from_prefs(target_prefs),
     )
+
+
+_RULES_CACHE: dict[tuple[str, float | None], SearchRules] = {}
+
+
+def load_search_rules(path: Path | None = None) -> SearchRules:
+    """Load search rules from the profile, cached on (resolved path, mtime)."""
+    target = path or DEFAULT_PROFILE_PATH
+    if not target.exists():
+        target = EXAMPLE_PROFILE_PATH
+    try:
+        key = (str(target.resolve()), target.stat().st_mtime)
+    except OSError:
+        return SearchRules()
+    cached = _RULES_CACHE.get(key)
+    if cached is None:
+        cached = load_candidate_profile(target).search
+        _RULES_CACHE[key] = cached
+    return cached
 
 
 def export_profile_for_typst(profile: CandidateProfile) -> dict:

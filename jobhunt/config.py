@@ -16,29 +16,6 @@ RAW_CSV_PATH = DATA_DIR / "raw-jobs.csv"
 RAW_MARKDOWN_PATH = DATA_DIR / "raw-jobs.md"
 DIRECTORY_PATH = ROOT / "careers-directory.md"
 
-TARGET_TITLE_KEYWORDS = (
-    "marketing",
-    "campaign",
-    "content",
-    "brand",
-    "crm",
-    "social media",
-    "communications",
-    "communication",
-    "digital marketing",
-    "marketing operations",
-    "community",
-    "copywriter",
-    "sales",
-    "account manager",
-    "account management",
-    "customer success",
-    "client success",
-    "partnership",
-    "partnerships",
-    "business development",
-    "growth",
-)
 
 ROLE_TITLE_KEYWORDS = (
     "manager",
@@ -58,37 +35,6 @@ ROLE_TITLE_KEYWORDS = (
     "consultant",
 )
 
-EXCLUDED_TITLE_KEYWORDS = (
-    "senior director",
-    "senior ",
-    "sr.",
-    "sr ",
-    "director",
-    "vice president",
-    "vp ",
-    "head of",
-    "chief",
-    "principal",
-    "stage",
-    "intern",
-    "internship",
-)
-
-ACCEPT_LOCATIONS = (
-    "den haag",
-    "the hague",
-    "amsterdam",
-    "rotterdam",
-    "delft",
-    "utrecht",
-    "hilversum",
-    "netherlands",
-    "nederland",
-    "nl",
-    "remote nl",
-    "remote - nl",
-    "remote netherlands",
-)
 
 REMOTE_TOKENS = ("remote", "hybrid", "work from home", "wfh")
 

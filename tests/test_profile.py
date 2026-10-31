@@ -1,6 +1,6 @@
 from pathlib import Path
 import pytest
-from jobhunt.profile import load_candidate_profile, CandidateProfile, CandidateContact, export_profile_for_typst
+from jobhunt.profile import SearchRules, load_candidate_profile, load_search_rules, CandidateProfile, CandidateContact, export_profile_for_typst
 
 
 def test_load_candidate_profile_from_example(tmp_path: Path):
@@ -96,3 +96,35 @@ def test_load_candidate_profile_empty_yaml(tmp_path: Path):
     prof = load_candidate_profile(cfg_file)
     assert prof.name == "Candidate Name"
     assert prof.skills == []
+
+
+def test_search_rules_loaded_from_target_preferences(tmp_path: Path):
+    cfg = tmp_path / "profile.yaml"
+    cfg.write_text(
+        "target_preferences:\n  target_roles: [X]\n  target_locations: [Berlin]\n  max_years_experience: 3\n  allow_remote: false\n",
+        encoding="utf-8",
+    )
+    rules = load_search_rules(cfg)
+    assert rules.target_roles == ("X",)
+    assert rules.accepted_locations == ("Berlin",)
+    assert rules.max_years_experience == 3
+    assert rules.allow_remote is False
+    assert load_candidate_profile(cfg).search == rules
+
+
+def test_missing_search_keys_give_permissive_defaults(tmp_path: Path):
+    cfg = tmp_path / "profile.yaml"
+    cfg.write_text("candidate:\n  name: Z\n", encoding="utf-8")
+    assert load_search_rules(cfg) == SearchRules()
+    assert SearchRules().allow_remote is True
+
+
+def test_search_rules_cache_refreshes_on_change(tmp_path: Path):
+    import os
+    cfg = tmp_path / "profile.yaml"
+    cfg.write_text("target_preferences:\n  target_roles: [A]\n", encoding="utf-8")
+    assert load_search_rules(cfg).target_roles == ("A",)
+    cfg.write_text("target_preferences:\n  target_roles: [B]\n", encoding="utf-8")
+    st = cfg.stat()
+    os.utime(cfg, (st.st_atime, st.st_mtime + 5))
+    assert load_search_rules(cfg).target_roles == ("B",)

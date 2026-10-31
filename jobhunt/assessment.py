@@ -6,66 +6,10 @@ import re
 
 from jobhunt import config
 from jobhunt.models import Job
+from jobhunt.profile import SearchRules, load_search_rules
 
-
-CORE_TERMS = (
-    "marketing",
-    "campaign",
-    "content",
-    "brand",
-    "communications",
-    "communication",
-    "crm",
-    "social media",
-    "copywriter",
-    "editor",
-)
-
-ADJACENT_TERMS = (
-    "account manager",
-    "account management",
-    "partnership",
-    "partnerships",
-    "partner",
-    "community",
-    "customer success",
-    "client success",
-    "growth",
-    "business development",
-    "operations",
-    "strategy",
-    "analytics",
-    "sales",
-    "sales operations",
-    "sales enablement",
-    "field sales",
-)
 
 ROLE_TERMS = config.ROLE_TITLE_KEYWORDS
-EXCLUDED_FUNCTION_RE = re.compile(
-    r"\b(?:platform|finance|fintech|treasury|cash|accounting|tax|legal|procurement|security|warehouse|chef|driver)\b",
-    re.I,
-)
-HARD_EXCLUDED_FUNCTION_RE = re.compile(
-    r"\b(?:engineering|engineer|software|backend|frontend|full stack|infrastructure|sap|technical|recruitment|recruiter|hr business|human resources|talent)\b",
-    re.I,
-)
-
-DUTCH_REQUIRED_PATTERNS = [
-    r"vloeiend nederlands",
-    r"nederlands vereist",
-    r"nederlands.*vereiste",
-    r"nederlands als moedertaal",
-    r"dutch fluency.*must",
-    r"dutch fluency",
-    r"fluent in dutch.*must",
-    r"fluent in dutch",
-    r"must be fluent in dutch",
-    r"native dutch",
-    r"vloeiende beheersing van.*nederlandse",
-]
-DUTCH_REQUIRED_RE = re.compile(r"\b(?:" + "|".join(DUTCH_REQUIRED_PATTERNS) + r")\b", re.I)
-
 EXP_RANGE_PREFIX = re.compile(
     r"(?:require|need|minimum|at least|have|with|possess|demonstrate)\s+(\d+)\s*(?:-|to|tot)\s*(\d+)\s*(?:years?|yrs?|jaar|jr)",
     re.I,
@@ -87,7 +31,7 @@ SENIOR_TITLE_RE = re.compile(
     r"\b(?:senior|sr\.?|director|head of|vp|vice president|chief|principal|leader|leadership|country manager|regional manager|national .*manager)\b",
     re.I,
 )
-INTERNSHIP_RE = re.compile(r"\b(?:intern|internship|stage|meewerkstage)\b", re.I)
+INTERNSHIP_RE = re.compile(r"\b(?:intern|internship|stage)\b", re.I)
 # ponytail: exclude storefront/floor roles directly to avoid low-growth roles passing adjacent/sales filters
 STOREFRONT_FLOOR_RE = re.compile(
     r"\b(?:sales associate|sales advisor|sales assistant|shop assistant|retail associate|store associate|floor staff|floor manager|cashier|clerk|stylist|store manager|assistant store manager|shop manager|boutique manager|retail assistant|retail specialist|retail representative|beauty advisor|beauty consultant|makeup artist|receptionist|front desk|night auditor|guest service|waiter|bartender|barista)\b",
@@ -97,7 +41,7 @@ MANAGEMENT_SCOPE_RE = re.compile(
     r"\b(?:manage|managing|lead|leading|hire|develop|coach)\s+(?:a\s+)?(?:team|people|managers|direct reports)\b",
     re.I,
 )
-REGIONAL_SCOPE_RE = re.compile(r"\b(?:regional|multi-market|multimarket|emea|global|benelux|northern europe|southern europe)\b", re.I)
+REGIONAL_SCOPE_RE = re.compile(r"\b(?:regional|multi-market|multimarket|emea|global|northern europe|southern europe)\b", re.I)
 OWNERSHIP_RE = re.compile(
     r"\b(?:own|ownership|execute|coordinate|build|launch|manage|optimi[sz]e|create|produce|calendar|campaign|content|community|partner)\b",
     re.I,
@@ -144,33 +88,53 @@ def has_any(text: str, terms: tuple[str, ...]) -> bool:
     return any(term in text for term in terms)
 
 
+def _resolve(rules: SearchRules | None) -> SearchRules:
+    return rules if rules is not None else load_search_rules()
+
+
+def _term_matches(term: str, text: str) -> bool:
+    """True when every word of ``term`` appears in ``text`` as a word-bounded token."""
+    words = clean(term).split()
+    return bool(words) and all(_has_token(text, word) for word in words)
+
+
+def _any_term(text: str, terms: tuple[str, ...]) -> bool:
+    return any(_term_matches(term, text) for term in terms)
+
+
 def _has_token(text: str, token: str) -> bool:
     # word-boundary match so short tokens like "nl" don't substring-match
     # inside unrelated words (e.g. "Menlo Park" contains "nl").
     return re.search(r"\b" + re.escape(token) + r"\b", text) is not None
 
 
-def location_ok(location: str | None, remote_type: str | None = None) -> bool:
+def location_ok(location: str | None, remote_type: str | None = None, rules: SearchRules | None = None) -> bool:
+    rules = _resolve(rules)
+    if not rules.accepted_locations:
+        return True
     loc = clean(location)
     remote = clean(remote_type)
     # Fully-remote jobs are acceptable regardless of where the HQ is listed.
-    # Hybrid is excluded here — a hybrid role based in Cologne or Gothenburg
-    # is not viable from Delft and still needs to pass the geo filter.
-    if any(token in remote for token in config.REMOTE_TOKENS) and "hybrid" not in remote:
+    # Hybrid still has to pass the geography filter.
+    if rules.allow_remote and any(token in remote for token in config.REMOTE_TOKENS) and "hybrid" not in remote:
         return True
-    dutch_anchor = any(anchor in loc for anchor in ("netherlands", "nederland", "amsterdam", "rotterdam", "delft", "den haag", "the hague", "utrecht", "hilversum", "rijswijk", "schiphol", "almere"))
-    foreign_anchor = any(anchor in loc for anchor in ("austria", "oostenrijk", "germany", "duitsland", "united kingdom", " uk", "france", "belgium", "sweden", "stockholm", "united states", "verenigde staten", "usa", "canada"))
-    if foreign_anchor and not dutch_anchor:
-        return False
     if not loc:
         return False
-    if any(token in loc for token in config.REMOTE_TOKENS):
-        return any(_has_token(loc, accepted) for accepted in config.ACCEPT_LOCATIONS)
-    return any(_has_token(loc, accepted) for accepted in config.ACCEPT_LOCATIONS)
+    return any(_has_token(loc, clean(accepted)) for accepted in rules.accepted_locations)
 
 
-def language_ok(text: str) -> bool:
-    return not bool(DUTCH_REQUIRED_RE.search(text))
+def language_ok(text: str, rules: SearchRules | None = None) -> bool:
+    rules = _resolve(rules)
+    if not rules.excluded_language_patterns:
+        return True
+    parts = []
+    for pattern in rules.excluded_language_patterns:
+        try:
+            re.compile(pattern)
+        except re.error:
+            pattern = re.escape(pattern)
+        parts.append(pattern)
+    return not re.search(r"\b(?:" + "|".join(parts) + r")\b", text, re.I)
 
 
 def experience_floor(text: str) -> int | None:
@@ -189,12 +153,14 @@ def experience_floor(text: str) -> int | None:
     return max(floors) if floors else None
 
 
-def experience_ok(text: str) -> bool:
+def experience_ok(text: str, rules: SearchRules | None = None) -> bool:
+    rules = _resolve(rules)
     floor = experience_floor(text)
-    return floor is None or floor < 5
+    return floor is None or rules.max_years_experience is None or floor <= rules.max_years_experience
 
 
-def title_has_role_shape(title: str | None) -> bool:
+def title_has_role_shape(title: str | None, rules: SearchRules | None = None) -> bool:
+    rules = _resolve(rules)
     text = clean(title)
     if not text:
         return False
@@ -202,29 +168,40 @@ def title_has_role_shape(title: str | None) -> bool:
         return False
     if re.search(r"\b[a-z0-9]+-[a-z0-9]+-[a-z0-9]+", text):
         return False
-    return has_any(text, ROLE_TERMS) or has_any(text, CORE_TERMS) or has_any(text, ADJACENT_TERMS)
+    if not rules.target_roles and not rules.adjacent_roles:
+        return True
+    return (
+        has_any(text, ROLE_TERMS)
+        or _any_term(text, rules.target_roles)
+        or _any_term(text, rules.adjacent_roles)
+    )
 
 
-def seniority_hard_fail(title: str, text: str) -> str | None:
-    if INTERNSHIP_RE.search(title):
+def seniority_hard_fail(title: str, text: str, rules: SearchRules | None = None) -> str | None:
+    rules = _resolve(rules)
+    if rules.exclude_internships and INTERNSHIP_RE.search(title):
         return "internship"
-    if SENIOR_TITLE_RE.search(title):
+    if rules.exclude_senior_titles and SENIOR_TITLE_RE.search(title):
         return "seniority"
     floor = experience_floor(text)
-    if floor is not None and floor >= 5:
+    if floor is not None and rules.max_years_experience is not None and floor > rules.max_years_experience:
         return "seniority"
-    if MANAGEMENT_SCOPE_RE.search(text):
-        return "seniority"
-    if REGIONAL_SCOPE_RE.search(title) and ("manager" in title or "lead" in title or "executive" in title):
-        return "seniority"
+    if rules.exclude_senior_titles:
+        if MANAGEMENT_SCOPE_RE.search(text):
+            return "seniority"
+        if REGIONAL_SCOPE_RE.search(title) and ("manager" in title or "lead" in title or "executive" in title):
+            return "seniority"
     return None
 
 
-def classify_theme(title_context: str) -> str | None:
-    if has_any(title_context, CORE_TERMS):
+def classify_theme(title_context: str, rules: SearchRules | None = None) -> str | None:
+    rules = _resolve(rules)
+    if _any_term(title_context, rules.target_roles):
         return "core"
-    if has_any(title_context, ADJACENT_TERMS):
+    if _any_term(title_context, rules.adjacent_roles):
         return "adjacent"
+    if not rules.target_roles and not rules.adjacent_roles:
+        return "core"
     return None
 
 
@@ -236,31 +213,30 @@ def _capped_reasons(reasons: list[str]) -> list[str]:
     return deduped[:3]
 
 
-def assess_job(job: Job) -> JobAssessment:
+def assess_job(job: Job, rules: SearchRules | None = None) -> JobAssessment:
+    rules = _resolve(rules)
     title = clean(job.title)
     text = clean(full_text(job))
     title_context = clean(" ".join(part for part in (job.title, job.department) if part))
     location_parts = [part for part in (job.location, job.country) if part]
     location = ", ".join(location_parts) or None
 
-    if not title_has_role_shape(job.title):
+    if not title_has_role_shape(job.title, rules):
         return JobAssessment(False, hard_fail_reason="role_shape")
     if STOREFRONT_FLOOR_RE.search(title):
         return JobAssessment(False, hard_fail_reason="storefront_floor")
-    if HARD_EXCLUDED_FUNCTION_RE.search(title_context):
+    if _any_term(title_context, rules.excluded_functions):
         return JobAssessment(False, hard_fail_reason="wrong_function")
-    if EXCLUDED_FUNCTION_RE.search(title_context) and not has_any(title_context, CORE_TERMS):
-        return JobAssessment(False, hard_fail_reason="wrong_function")
-    if not location_ok(location, job.remote_type):
+    if not location_ok(location, job.remote_type, rules):
         return JobAssessment(False, hard_fail_reason="geography")
-    if not language_ok(text):
-        return JobAssessment(False, hard_fail_reason="dutch_required")
+    if not language_ok(text, rules):
+        return JobAssessment(False, hard_fail_reason="language_required")
 
-    seniority_fail = seniority_hard_fail(title, text)
+    seniority_fail = seniority_hard_fail(title, text, rules)
     if seniority_fail:
         return JobAssessment(False, hard_fail_reason=seniority_fail)
 
-    theme = classify_theme(title_context)
+    theme = classify_theme(title_context, rules)
     if not theme:
         return JobAssessment(False, hard_fail_reason="theme")
 
@@ -270,7 +246,7 @@ def assess_job(job: Job) -> JobAssessment:
         "seniority_attainability": 30,
         "environment_headroom": 15 if HEADROOM_RE.search(text) else 8,
         "freshness": 5 if job.date_posted else 3,
-        "location_strength": 5 if location and any(city in clean(location) for city in ("delft", "den haag", "the hague", "amsterdam", "rotterdam")) else 3,
+        "location_strength": 5 if location and any(clean(city) in clean(location) for city in rules.preferred_cities) else 3,
     }
 
     floor = experience_floor(text)
@@ -298,7 +274,7 @@ def assess_job(job: Job) -> JobAssessment:
     if theme == "adjacent":
         reasons.append("People-facing")
     if OWNERSHIP_RE.search(text):
-        reasons.append("Marketing ownership" if theme == "core" else "Relationship ownership")
+        reasons.append("Role ownership" if theme == "core" else "Relationship ownership")
     if HEADROOM_RE.search(text):
         reasons.append("Strong growth headroom")
     if breakdown["location_strength"] == 5:
