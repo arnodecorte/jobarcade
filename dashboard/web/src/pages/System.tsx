@@ -182,24 +182,26 @@ export function System({ data, reload, refreshing }: PageProps) {
           </>
         )}
 
-        <SystemDisclosure title="Add company" summary="Extend the tracked careers directory">
-            <form onSubmit={onSubmit}>
-              <label className="field">
-                Company
-                <input name="company" required placeholder="e.g. Mollie" />
-              </label>
-              <label className="field">
-                Careers URL
-                <input name="careers_url" required type="url" placeholder="https://…/careers" />
-              </label>
-              <label className="field">
-                Notes
-                <textarea name="notes" rows={2} placeholder="Optional" />
-              </label>
-              <button className="btn rose" type="submit">Add company</button>
-              {msg && <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{msg}</p>}
-            </form>
-        </SystemDisclosure>
+        {scraperOn && (
+          <SystemDisclosure title="Add company" summary="Extend the tracked careers directory">
+              <form onSubmit={onSubmit}>
+                <label className="field">
+                  Company
+                  <input name="company" required placeholder="e.g. Mollie" />
+                </label>
+                <label className="field">
+                  Careers URL
+                  <input name="careers_url" required type="url" placeholder="https://…/careers" />
+                </label>
+                <label className="field">
+                  Notes
+                  <textarea name="notes" rows={2} placeholder="Optional" />
+                </label>
+                <button className="btn rose" type="submit">Add company</button>
+                {msg && <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{msg}</p>}
+              </form>
+          </SystemDisclosure>
+        )}
 
         <SystemDisclosure title="Engineering" summary="Draft-builder tools">
             <p className="panel-sub">The developer surfaces, kept separate from the daily flow.</p>
