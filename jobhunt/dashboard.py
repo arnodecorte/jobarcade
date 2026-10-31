@@ -62,11 +62,34 @@ from jobhunt.integration_settings import (
 )
 from jobhunt.job_scrape import scrape_job_listing
 from jobhunt.models import Job
+from jobhunt import profile as profile_module
+from jobhunt.onboarding import (
+    ProfileError,
+    complete_onboarding,
+    ensure_profile_file,
+    get_goals,
+    onboarding_state,
+    read_profile_document,
+    reset_onboarding,
+    save_goals,
+    set_onboarding_step,
+    skip_onboarding,
+    write_profile_document,
+)
 from jobhunt.profile import CandidateProfile, export_profile_for_typst, load_candidate_profile
 
 STATIC_DIR = ROOT / "dashboard" / "static"
 APPLICATIONS_DIR = ROOT / "Applications"
-CANDIDATE_NAME = load_candidate_profile().name
+
+
+def _safe_profile() -> CandidateProfile:
+    """Load the candidate profile, tolerating a hand-edited or malformed file."""
+    try:
+        return load_candidate_profile()
+    except Exception as exc:
+        print(f"warning: could not load profile: {exc}; using defaults", file=sys.stderr)
+        return CandidateProfile(name="Candidate")
+
 
 # The job hunt is over: scraping, LLM drafting and all other live actions are
 # paused. Set to keep the dashboard itself up as a read-only browsable archive.
@@ -136,7 +159,7 @@ DRAFT_META_FILENAME = "draft-meta.json"
 
 
 def get_candidate_facts(profile: CandidateProfile | None = None) -> str:
-    prof = profile or load_candidate_profile()
+    prof = profile or _safe_profile()
     return (
         f"{prof.name} is targeting roles in {prof.contact.location or 'their target area'}.\n"
         f"Use only these facts:\n{prof.career_facts}\n"
@@ -917,7 +940,7 @@ def review_cv_payload(cv_data: dict, listing: str = "") -> dict:
         "reporting",
     )
     _stop = {"and", "of", "the", "&", "for", "with"}
-    _profile = load_candidate_profile()
+    _profile = _safe_profile()
     _words = {
         word
         for phrase in [*_profile.skills, *_profile.search.target_roles]
@@ -959,7 +982,7 @@ def review_cv_payload(cv_data: dict, listing: str = "") -> dict:
 def _draft_prompt(
     row: sqlite3.Row | dict, listing: str, custom_instructions: str = "", profile: CandidateProfile | None = None
 ) -> str:
-    prof = profile or load_candidate_profile()
+    prof = profile or _safe_profile()
     guidance = custom_instructions.strip()
     guidance_block = (
         f"\nUSER GUIDANCE:\n{guidance}\n"
@@ -1139,7 +1162,7 @@ def generate_draft_with_ollama(
 def _refine_prompt(
     current_yaml: str, listing: str, instructions: str, profile: CandidateProfile | None = None
 ) -> str:
-    prof = profile or load_candidate_profile()
+    prof = profile or _safe_profile()
     guidance = instructions.strip()
     guidance_block = f"\nNEW INSTRUCTIONS:\n{guidance}\n" if guidance else ""
     return f"""
@@ -2169,6 +2192,17 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         try:
+            if parsed.path == "/api/onboarding":
+                with db_session() as conn:
+                    self._send_json(onboarding_state(conn, profile_module.DEFAULT_PROFILE_PATH))
+                return
+            if parsed.path == "/api/profile":
+                self._send_json(read_profile_document(profile_module.DEFAULT_PROFILE_PATH))
+                return
+            if parsed.path == "/api/goals":
+                with db_session() as conn:
+                    self._send_json(get_goals(conn))
+                return
             if parsed.path == "/api/summary":
                 with db_session() as conn:
                     self._send_json(fetch_summary(conn))
@@ -2261,6 +2295,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._serve_application_file(app_match.group(1), app_match.group(2))
                 return
             self._serve_static(parsed.path)
+        except ProfileError as exc:
+            self._send_error_json(str(exc), HTTPStatus.UNPROCESSABLE_ENTITY)
         except Exception as exc:  # pragma: no cover - keeps browser errors useful.
             self.log_message("unhandled GET error: %s", exc)
             self._send_error_json("Internal server error", HTTPStatus.INTERNAL_SERVER_ERROR)
@@ -2271,6 +2307,19 @@ class DashboardHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         try:
             payload = _read_json(self)
+            if parsed.path == "/api/onboarding/step":
+                with db_session() as conn:
+                    self._send_json(set_onboarding_step(conn, str(payload.get("step") or "")))
+                return
+            if parsed.path in ("/api/onboarding/complete", "/api/onboarding/skip", "/api/onboarding/reset"):
+                action = {
+                    "/api/onboarding/complete": complete_onboarding,
+                    "/api/onboarding/skip": skip_onboarding,
+                    "/api/onboarding/reset": reset_onboarding,
+                }[parsed.path]
+                with db_session() as conn:
+                    self._send_json(action(conn))
+                return
             if parsed.path == "/api/companies":
                 self._send_json(add_company(payload), HTTPStatus.CREATED)
                 return
@@ -2462,6 +2511,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     self._send_json(reprompt_draft(reprompt_match.group(1), mode, instructions, current_draft, job_id, conn))
                 return
             self._send_error_json("Not found", HTTPStatus.NOT_FOUND)
+        except ProfileError as exc:
+            self._send_error_json(str(exc), HTTPStatus.UNPROCESSABLE_ENTITY)
         except ValueError as exc:
             self._send_error_json(str(exc), HTTPStatus.BAD_REQUEST)
         except Exception as exc:  # pragma: no cover
@@ -2490,11 +2541,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 with db_session() as conn:
                     self._send_json(save_features(conn, payload))
                 return
+            if parsed.path == "/api/profile":
+                self._send_json(write_profile_document(payload, profile_module.DEFAULT_PROFILE_PATH))
+                return
+            if parsed.path == "/api/goals":
+                with db_session() as conn:
+                    self._send_json(save_goals(conn, payload))
+                return
             draft_match = re.match(r"^/api/applications/([^/]+)/draft$", parsed.path)
             if draft_match:
                 self._send_json(save_application_draft(draft_match.group(1), payload))
                 return
             self._send_error_json("Not found", HTTPStatus.NOT_FOUND)
+        except ProfileError as exc:
+            self._send_error_json(str(exc), HTTPStatus.UNPROCESSABLE_ENTITY)
         except ValueError as exc:
             self._send_error_json(str(exc), HTTPStatus.BAD_REQUEST)
         except Exception as exc:  # pragma: no cover
@@ -2531,6 +2591,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     self._send_json(clear_firecrawl_settings(conn))
                 return
             self._send_error_json("Not found", HTTPStatus.NOT_FOUND)
+        except ProfileError as exc:
+            self._send_error_json(str(exc), HTTPStatus.UNPROCESSABLE_ENTITY)
         except ValueError as exc:
             self._send_error_json(str(exc), HTTPStatus.BAD_REQUEST)
         except Exception as exc:  # pragma: no cover
@@ -2629,7 +2691,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if not (cv_paths and letter_paths):
             self._send_error_json("Not found", HTTPStatus.NOT_FOUND)
             return
-        cand_name = load_candidate_profile().name or "Candidate"
+        cand_name = _safe_profile().name or "Candidate"
         role_label = app_slug.replace("-", " ")
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -2650,6 +2712,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
 
 def serve_dashboard(host: str = "127.0.0.1", port: int = 8765) -> None:
+    ensure_profile_file()
     init_db(connect(DB_PATH)).close()
     server = ThreadingHTTPServer((host, port), DashboardHandler)
     print(f"Job Application Hub dashboard: http://{host}:{port}")

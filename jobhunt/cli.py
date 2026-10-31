@@ -18,7 +18,10 @@ from jobhunt.export import export_all
 def cmd_validate(args: argparse.Namespace) -> int:
     errors: list[str] = []
     try:
+        from jobhunt.onboarding import ensure_profile_file
         from jobhunt.profile import load_candidate_profile
+        if ensure_profile_file():
+            print("Profile: created config/profile.yaml from the example")
         profile = load_candidate_profile()
         print(f"Profile: OK (candidate: {profile.name})")
     except Exception as exc:
