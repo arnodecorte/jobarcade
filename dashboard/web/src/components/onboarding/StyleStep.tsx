@@ -10,6 +10,7 @@ const VARIANT_INFO: Record<string, [string, string]> = {
   classic_two_page: ["Classic", "Traditional two pages."],
   enriched_two_page: ["Enriched", "Two pages with expanded impact."],
 };
+const TWO_PAGE_VARIANTS = new Set(["classic_two_page", "enriched_two_page"]);
 // Deep tones only: the server rejects or darkens pale accents.
 const SWATCHES = ["#950E25", "#82213E", "#422B78", "#205C83", "#177854", "#9B4808"]; // already contrast-safe, so the server returns them unchanged
 
@@ -17,11 +18,14 @@ export function StyleStep({ onBack, onSkip, onContinue, reload }: StepProps) {
   const [style, setStyle] = useState<StyleState | null>(null);
   const [loadError, setLoadError] = useState("");
   const [preview, setPreview] = useState("");
+  const [previewPage, setPreviewPage] = useState<1 | 2>(1);
   const [previewState, setPreviewState] = useState<"idle" | "loading" | "error">("idle");
   const [previewError, setPreviewError] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const urlRef = useRef("");
+  const isTwoPage = style ? TWO_PAGE_VARIANTS.has(style.cv_variant) : false;
+  const activePage: 1 | 2 = isTwoPage ? previewPage : 1;
 
   useEffect(() => {
     getStyle().then(setStyle).catch((e) => setLoadError((e as Error).message));
@@ -34,7 +38,7 @@ export function StyleStep({ onBack, onSkip, onContinue, reload }: StepProps) {
     const ctrl = new AbortController();
     setPreviewState("loading");
     const timer = window.setTimeout(() => {
-      previewStyle({ cv_variant: style.cv_variant, accent: style.accent, font: style.font, mode: style.mode }, ctrl.signal)
+      previewStyle({ cv_variant: style.cv_variant, accent: style.accent, font: style.font, mode: style.mode, page: activePage }, ctrl.signal)
         .then((blob) => {
           const next = URL.createObjectURL(blob);
           if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -52,9 +56,13 @@ export function StyleStep({ onBack, onSkip, onContinue, reload }: StepProps) {
       window.clearTimeout(timer);
       ctrl.abort();
     };
-  }, [style?.cv_variant, style?.accent, style?.font, style?.mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [style?.cv_variant, style?.accent, style?.font, style?.mode, activePage]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const patch = (p: Partial<StyleState>) => { setStyle((s) => (s ? { ...s, ...p } : s)); setError(""); };
+  const patch = (p: Partial<StyleState>) => {
+    if (p.cv_variant && !TWO_PAGE_VARIANTS.has(p.cv_variant)) setPreviewPage(1);
+    setStyle((s) => (s ? { ...s, ...p } : s));
+    setError("");
+  };
 
   async function save() {
     if (!style) return;
@@ -133,7 +141,23 @@ export function StyleStep({ onBack, onSkip, onContinue, reload }: StepProps) {
             {error && <p className="ob-error" role="alert">{error}</p>}
           </div>
           <div className="ob-preview" aria-live="polite">
-            {preview && <img src={preview} alt="Preview of your CV" className={previewState === "loading" ? "dim" : ""} />}
+            {isTwoPage && (
+              <div className="ob-toggle ob-preview-pages" role="radiogroup" aria-label="Preview page">
+                {([1, 2] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    role="radio"
+                    aria-checked={activePage === p}
+                    className={activePage === p ? "active" : ""}
+                    onClick={() => setPreviewPage(p)}
+                  >
+                    Page {p}
+                  </button>
+                ))}
+              </div>
+            )}
+            {preview && <img src={preview} alt={`Preview of your CV (page ${activePage})`} className={previewState === "loading" ? "dim" : ""} />}
             {!preview && previewState === "loading" && <p className="ob-note">Rendering preview…</p>}
             {previewState === "error" && <p className="ob-error">{previewError}</p>}
           </div>

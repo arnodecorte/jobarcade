@@ -248,6 +248,9 @@ def test_api_key_env_fallback(vault, monkeypatch):
     conn, _ = vault
     monkeypatch.setenv("JOBHUNT_OLLAMA_API_KEY", "env-key")
     assert effective_ollama_settings(conn)["api_key"] == "env-key"
+    # Moving to a different host does not leak the env API key.
+    save_ollama_settings(conn, {"base_url": "https://other.example", "model": "m"})
+    assert effective_ollama_settings(conn)["api_key"] == ""
 
 
 def test_unreachable_ollama_returns_error_quickly(vault):
@@ -322,3 +325,13 @@ def test_scraper_disabled_by_default_and_toggleable(vault, monkeypatch):
     assert save_features(conn, {"scraper": False})["features"] == {"scraper": False}
     monkeypatch.setenv("JOBHUNT_ENABLE_SCRAPER", "1")
     assert scraper_enabled(conn) is True
+
+
+def test_discovery_routes_blocked_when_scraper_disabled(dashboard_server):
+    status, body, _ = dashboard_server("GET", "/api/company-candidates")
+    assert status == 403 and "disabled" in body["error"].lower()
+    status, body, _ = dashboard_server("POST", "/api/companies", {"name": "Acme"})
+    assert status == 403 and "disabled" in body["error"].lower()
+    status, body, _ = dashboard_server("POST", "/api/company-candidates/1/decision", {"status": "added"})
+    assert status == 403 and "disabled" in body["error"].lower()
+

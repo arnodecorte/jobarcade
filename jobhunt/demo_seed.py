@@ -88,23 +88,24 @@ def seed_demo(conn: sqlite3.Connection, applications_dir: Path) -> dict:
     conn.commit()
 
     folder = applications_dir / demo_folder_name()
-    folder.mkdir(parents=True, exist_ok=True)
-    reference = ROOT / "Base" / "reference"
-    for name in ("cv-data.yaml", "letter-data.yaml"):
-        shutil.copyfile(reference / name, folder / name)
-    (folder / "job-listing.md").write_text(
-        f"# {DEMO_DRAFT_TITLE} - {DEMO_DRAFT_COMPANY}\n\n{_DEMO_DESCRIPTION}\n", encoding="utf-8"
-    )
-    write_theme(
-        folder,
-        {
-            "enabled": True,
-            "mode": "dark",
-            "accent": "#E50914",
-            "confidence": 0.9,
-            "provider": "demo",
-        },
-    )
+    if not folder.exists() or _is_demo_folder(folder):
+        folder.mkdir(parents=True, exist_ok=True)
+        reference = ROOT / "Base" / "reference"
+        for name in ("cv-data.yaml", "letter-data.yaml"):
+            shutil.copyfile(reference / name, folder / name)
+        (folder / "job-listing.md").write_text(
+            f"# {DEMO_DRAFT_TITLE} - {DEMO_DRAFT_COMPANY}\n\n{_DEMO_DESCRIPTION}\n", encoding="utf-8"
+        )
+        write_theme(
+            folder,
+            {
+                "enabled": True,
+                "mode": "dark",
+                "accent": "#E50914",
+                "confidence": 0.9,
+                "provider": "demo",
+            },
+        )
     return {"jobs": len(jobs), "draft_folder": str(folder)}
 
 

@@ -63,6 +63,11 @@ def test_font_failure_falls_back_to_default_with_warning(tmp_path, monkeypatch):
 def test_render_preview_returns_png():
     png = sd.render_style_preview({"cv_variant": "classic_two_page", "accent": "#1F4E79", "font": "Default"})
     assert png[:8] == b"\x89PNG\r\n\x1a\n"
+    png_p2 = sd.render_style_preview({"cv_variant": "classic_two_page", "accent": "#1F4E79", "font": "Default", "page": 2})
+    assert png_p2[:8] == b"\x89PNG\r\n\x1a\n"
+    assert png_p2 != png
+    with pytest.raises(ValueError, match="between 1 and 1"):
+        sd.render_style_preview({"cv_variant": "grotesk_one_page", "accent": "#1F4E79", "page": 2})
 
 
 def test_style_routes(dashboard_server, tmp_path, monkeypatch):

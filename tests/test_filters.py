@@ -174,3 +174,12 @@ def test_remote_role_allowed_only_when_allow_remote():
     job = Job("Acme", "Account Manager", location="Lisbon", remote_type="Remote")
     assert assess_job(job, rules=SearchRules(accepted_locations=("berlin",))).included is True
     assert assess_job(job, rules=SearchRules(accepted_locations=("berlin",), allow_remote=False)).hard_fail_reason == "geography"
+
+
+def test_punctuation_tokens_in_target_roles():
+    rules = SearchRules(target_roles=("c++ developer", "c# engineer", ".net architect"))
+    assert assess_job(Job("Acme", "Senior C++ Developer"), rules=rules).included is True
+    assert assess_job(Job("Acme", "C# Engineer"), rules=rules).included is True
+    assert assess_job(Job("Acme", ".NET Architect"), rules=rules).included is True
+    assert assess_job(Job("Acme", "C Developer"), rules=rules).hard_fail_reason == "role_shape"
+

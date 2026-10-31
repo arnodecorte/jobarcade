@@ -11,7 +11,7 @@
 [![Typst PDF Engine](https://img.shields.io/badge/Typesetting-Typst_0.15-239DAD)](#)
 [![Local AI](https://img.shields.io/badge/AI-Ollama_Local_LLM-000000)](#)
 [![Docker Ready](https://img.shields.io/badge/Docker-Compose_Turnkey-2496ED?logo=docker&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-250%2B_Passing-10B981)](#)
+[![Tests](https://img.shields.io/badge/Tests-280%2B_Passing-10B981)](#)
 [![Privacy](https://img.shields.io/badge/Privacy-100%25_Local_SQLite-7C3AED)](#)
 
 <br />
@@ -231,7 +231,7 @@ JobArcade includes a full command-line interface for scripting and agentic workf
 | `python -m jobhunt dashboard` | Start the web dashboard server (`--host 127.0.0.1 --port 8765`). |
 | `python -m jobhunt seed-demo [--clear]` | Add (or remove) fictional sample jobs and a draft for trying the dashboard. |
 | `python -m jobhunt scrape-listing "<URL>"` | *Deprecated/experimental.* Extract job details from a URL; prints a deprecation notice. The scraper flag only gates the dashboard UI and API. |
-| `python -m jobhunt auto-draft --limit 5` | Batch-generate Ollama CV & cover letter drafts for top-scored unbuilt roles. |
+| `python -m jobhunt tailor-drafts [--limit 5]` | Batch-generate Ollama CV & cover letter drafts for top-scored unbuilt roles (alias: `auto-draft`). |
 | `python -m jobhunt build --app <Folder>` | Compile `cv.pdf` and `motivation-letter.pdf` for an application folder via Typst. |
 
 ---
@@ -247,7 +247,8 @@ jobarcade/
 │   └── reference/            # Reference YAML fixtures for automated tests
 ├── config/
 │   ├── profile.example.yaml  # Documented starter template (Alex Morgan demo profile)
-│   └── profile.yaml          # Your private candidate profile (git-ignored)
+│   ├── profile.yaml          # Your private candidate profile (git-ignored)
+│   └── default-theme.yaml    # Your default CV style & theme (git-ignored)
 ├── dashboard/
 │   ├── static/               # Compiled production SPA assets
 │   └── web/                  # React + TypeScript + Framer Motion frontend source
@@ -255,13 +256,15 @@ jobarcade/
 ├── docs/assets/              # README visual tour screenshots & demo GIF
 ├── jobhunt/                  # Python backend & CLI
 │   ├── dashboard.py          # REST API, Ollama tailoring prompts & CV scrutinizer
+│   ├── onboarding.py         # First-run setup state & profile document writer
+│   ├── style_defaults.py     # Default CV style persistence & Typst PNG preview renderer
 │   ├── profile.py            # Candidate profile loader & Typst input serializer
 │   ├── brand_theme.py        # Brand Chameleon color & contrast extractor
 │   ├── font_theme.py         # Brand typography resolver
 │   ├── job_scrape.py         # Single-URL job extractor (JSON-LD / OpenGraph / Firecrawl)
 │   ├── gmail_integration.py  # Optional OAuth inbox classifier for interview/rejection signals
 │   └── database.py           # SQLite schema & lifecycle event ledger
-└── tests/                    # 250+ unit, integration, and Typst compilation tests
+└── tests/                    # 280+ unit, integration, and Typst compilation tests
 ```
 
 ---

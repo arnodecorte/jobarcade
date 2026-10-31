@@ -2,14 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { getCompanies, getGoals, getGmailEvidence, getGmailStatus, getIntegrationStatus, getJobs, getOnboarding, getStats, getSummary, saveGoals } from "./lib/api";
 import type { Company, Coverage, Goals, GmailEvidence, GmailStatus, IntegrationStatus, Job, OnboardingState, Stats, Summary } from "./lib/api";
-import { useAsync, useChameleonUpdateSplash, useHashRoute } from "./lib/hooks";
+import { useAsync, useHashRoute } from "./lib/hooks";
 import { DraftProvider } from "./lib/draftContext";
 import { BubbleMenu } from "./components/BubbleMenu";
 import { Loading } from "./components/Sprite";
 import { Grainient } from "./components/Grainient";
 import { AmbientDice } from "./components/AmbientDice";
 import { DraftOverlay } from "./components/DraftOverlay";
-import { ChameleonUpdateSplash } from "./components/ChameleonUpdateSplash";
 import { Toast } from "./components/Toast";
 import { rejectionMessage } from "./lib/odds";
 import { FeedbackChip } from "./components/FeedbackChip";
@@ -70,7 +69,6 @@ async function loadAll(): Promise<DashData> {
 export function App() {
   const route = useHashRoute();
   const { data, error, loading, reload } = useAsync(loadAll);
-  const [showChameleonUpdate, dismissChameleonUpdate] = useChameleonUpdateSplash();
   const migrated = useRef(false);
   useEffect(() => {
     if (!data || migrated.current) return;
@@ -118,7 +116,6 @@ export function App() {
     <ScraperContext.Provider value={scraper}>
     <DraftProvider onGenerated={reload}>
       <Grainient />
-      {data?.onboarding.status === "complete" && showChameleonUpdate && <ChameleonUpdateSplash onDismiss={dismissChameleonUpdate} />}
       <BubbleMenu route={route} freshCount={freshCount} scraper={scraper} />
       <div className="shell">
         <AnimatePresence mode="wait" initial={false}>

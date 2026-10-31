@@ -56,17 +56,6 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): Async<T
   return { data, error, loading, reload: () => setNonce((n) => n + 1) };
 }
 
-const CHAMELEON_UPDATE_KEY = "jobhunt.chameleon.update.v1";
-
-export function useChameleonUpdateSplash(): [boolean, () => void] {
-  const [show, setShow] = useState(() => !window.localStorage.getItem(CHAMELEON_UPDATE_KEY));
-  const dismiss = () => {
-    window.localStorage.setItem(CHAMELEON_UPDATE_KEY, "1");
-    setShow(false);
-  };
-  return [show, dismiss];
-}
-
 const COLLAPSED_COLUMNS_KEY = "jobhunt.pipeline.collapsed";
 
 /** Which Pipeline kanban columns are collapsed, remembered across reloads. */

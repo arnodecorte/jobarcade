@@ -2208,6 +2208,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
         )
         return True
 
+    def _blocked_if_scraper_disabled(self, conn: sqlite3.Connection) -> bool:
+        """Reject URL scraping and discovery requests when the scraper feature is disabled."""
+        if scraper_enabled(conn):
+            return False
+        self._send_error_json(
+            "URL scraping is disabled. Enable it under System → Features.",
+            HTTPStatus.FORBIDDEN,
+        )
+        return True
+
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         try:
@@ -2245,6 +2255,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/company-candidates":
                 with db_session() as conn:
+                    if self._blocked_if_scraper_disabled(conn):
+                        return
                     self._send_json(fetch_company_candidates(conn))
                 return
             if parsed.path == "/api/raw-jobs":
@@ -2352,11 +2364,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     self._send_json(action(conn))
                 return
             if parsed.path == "/api/companies":
+                with db_session() as conn:
+                    if self._blocked_if_scraper_disabled(conn):
+                        return
                 self._send_json(add_company(payload), HTTPStatus.CREATED)
                 return
             candidate_decision_match = re.match(r"^/api/company-candidates/(\d+)/decision$", parsed.path)
             if candidate_decision_match:
                 with db_session() as conn:
+                    if self._blocked_if_scraper_disabled(conn):
+                        return
                     self._send_json(
                         update_company_candidate_decision(conn, int(candidate_decision_match.group(1)), payload)
                     )
@@ -2364,6 +2381,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             candidate_url_match = re.match(r"^/api/company-candidates/(\d+)/careers-url$", parsed.path)
             if candidate_url_match:
                 with db_session() as conn:
+                    if self._blocked_if_scraper_disabled(conn):
+                        return
                     self._send_json(
                         update_company_candidate_careers_url(conn, int(candidate_url_match.group(1)), payload)
                     )
@@ -2373,11 +2392,15 @@ class DashboardHandler(BaseHTTPRequestHandler):
             )
             if candidate_suggest_url_match:
                 with db_session() as conn:
+                    if self._blocked_if_scraper_disabled(conn):
+                        return
                     self._send_json(suggest_company_candidate_careers_url(conn, int(candidate_suggest_url_match.group(1))))
                 return
             candidate_add_match = re.match(r"^/api/company-candidates/(\d+)/add-to-scrapers$", parsed.path)
             if candidate_add_match:
                 with db_session() as conn:
+                    if self._blocked_if_scraper_disabled(conn):
+                        return
                     self._send_json(
                         add_company_candidate_to_scrapers(conn, int(candidate_add_match.group(1))),
                         HTTPStatus.CREATED,
@@ -2385,11 +2408,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/jobs/scrape":
                 with db_session() as conn:
-                    if not scraper_enabled(conn):
-                        self._send_error_json(
-                            "URL scraping is disabled. Enable it under System → Features.",
-                            HTTPStatus.FORBIDDEN,
-                        )
+                    if self._blocked_if_scraper_disabled(conn):
                         return
                     key = effective_firecrawl_key(conn) or None
                 self._send_json(scrape_job_listing(str(payload.get("url") or ""), api_key=key))

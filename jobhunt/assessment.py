@@ -104,8 +104,9 @@ def _any_term(text: str, terms: tuple[str, ...]) -> bool:
 
 def _has_token(text: str, token: str) -> bool:
     # word-boundary match so short tokens like "nl" don't substring-match
-    # inside unrelated words (e.g. "Menlo Park" contains "nl").
-    return re.search(r"\b" + re.escape(token) + r"\b", text) is not None
+    # inside unrelated words (e.g. "Menlo Park" contains "nl"), while still
+    # matching tokens with leading/trailing punctuation like "c++", "c#", ".net".
+    return re.search(r"(?<!\w)" + re.escape(token) + r"(?!\w)", text) is not None
 
 
 def location_ok(location: str | None, remote_type: str | None = None, rules: SearchRules | None = None) -> bool:

@@ -744,7 +744,10 @@ export const saveStyle = (body: Pick<StyleDoc, "cv_variant" | "accent" | "font" 
   api<StyleDoc>("/api/style", { method: "PUT", body: JSON.stringify(body) });
 
 /** Renders the CV preview server-side; resolves to a PNG blob. */
-export async function previewStyle(body: Pick<StyleDoc, "cv_variant" | "accent" | "font" | "mode">, signal?: AbortSignal): Promise<Blob> {
+export async function previewStyle(
+  body: Pick<StyleDoc, "cv_variant" | "accent" | "font" | "mode"> & { page?: number },
+  signal?: AbortSignal,
+): Promise<Blob> {
   const res = await fetch("/api/style/preview", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

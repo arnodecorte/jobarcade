@@ -118,19 +118,24 @@ def effective_gmail_settings(conn) -> dict:
 OLLAMA_FUNCTIONS = ("draft", "refine", "classify")
 
 
-def _effective_ollama_base_url(conn) -> str:
+def _env_ollama_base_url() -> str:
     return (
-        get_setting(conn, "ollama_base_url")
-        or os.environ.get("OLLAMA_BASE_URL", "").strip()
+        os.environ.get("OLLAMA_BASE_URL", "").strip()
         or os.environ.get("JOBHUNT_OLLAMA_URL", "").strip()
         or "http://host.docker.internal:11434"
     )
+
+
+def _effective_ollama_base_url(conn) -> str:
+    return get_setting(conn, "ollama_base_url") or _env_ollama_base_url()
 
 
 def effective_ollama_settings(conn) -> dict:
     saved_url = get_setting(conn, "ollama_base_url")
     saved_model = get_setting(conn, "ollama_model")
     saved_key = get_setting(conn, "ollama_api_key") if has_setting(conn, "ollama_api_key") else ""
+    env_key = os.environ.get("JOBHUNT_OLLAMA_API_KEY", "").strip()
+    allow_env_key = not saved_url or _endpoint(saved_url) == _endpoint(_env_ollama_base_url())
     model = (
         saved_model
         or os.environ.get("OLLAMA_MODEL", "").strip()
@@ -143,7 +148,7 @@ def effective_ollama_settings(conn) -> dict:
     return {
         "base_url": _effective_ollama_base_url(conn),
         "model": model,
-        "api_key": saved_key or os.environ.get("JOBHUNT_OLLAMA_API_KEY", "").strip(),
+        "api_key": saved_key or (env_key if allow_env_key else ""),
         "models": models,
         "source": "vault" if saved_url or saved_model else "environment",
     }

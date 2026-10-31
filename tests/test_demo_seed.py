@@ -79,6 +79,8 @@ def test_clear_demo_keeps_same_named_folder_without_demo_marker(tmp_path):
     folder.mkdir(parents=True)
     (folder / "cv-data.yaml").write_text("mine: true\n")
     (folder / "brand-theme.yaml").write_text("provider: local\n")
+    seed_demo(conn, apps)
+    assert (folder / "cv-data.yaml").read_text() == "mine: true\n"
     clear_demo(conn, apps)
     assert (folder / "cv-data.yaml").read_text() == "mine: true\n"
 

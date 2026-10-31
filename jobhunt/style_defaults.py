@@ -177,12 +177,17 @@ def _preview_profile() -> profile_module.CandidateProfile:
 
 
 def render_style_preview(style: dict) -> bytes:
-    """Return a PNG of page 1 of the reference CV rendered with ``style``."""
+    """Return a PNG of the requested page of the reference CV rendered with ``style``."""
     typst = shutil.which("typst")
     if typst is None:
         raise ValueError("Typst is not installed, so a preview can't be drawn.")
     theme = build_default_theme(style)
     theme, _warnings = _with_typography(theme)
+    max_pages = max_pages_for_variant(theme["cv_variant"])
+    raw_page = style.get("page", 1)
+    if isinstance(raw_page, bool) or not isinstance(raw_page, int) or raw_page < 1 or raw_page > max_pages:
+        raise ValueError(f"Preview page must be an integer between 1 and {max_pages}.")
+    page = raw_page
 
     preview_dir = ROOT / "data" / ".preview"
     preview_dir.mkdir(parents=True, exist_ok=True)
@@ -195,7 +200,7 @@ def render_style_preview(style: dict) -> bytes:
         except (OSError, yaml.YAMLError) as exc:
             raise ValueError(f"The reference CV used for the preview could not be read: {exc}") from exc
         cv["variant"] = theme["cv_variant"]
-        cv["max_pages"] = max_pages_for_variant(theme["cv_variant"])
+        cv["max_pages"] = max_pages
         (work / "cv-data.yaml").write_text(dump(cv), encoding="utf-8")
         profile = _preview_profile()
         (work / "profile.yaml").write_text(dump(profile_module.export_profile_for_typst(profile)), encoding="utf-8")
@@ -206,7 +211,7 @@ def render_style_preview(style: dict) -> bytes:
         out = work / "preview.png"
         cmd = [
             typst, "compile", "--root", str(ROOT), str(ROOT / "Base" / "cv.typ"), str(out),
-            "--format", "png", "--pages", "1", "--ppi", "110",
+            "--format", "png", "--pages", str(page), "--ppi", "110",
             "--input", f"data={rel('cv-data.yaml')}",
             "--input", f"profile={rel('profile.yaml')}",
             "--input", f"theme={rel('theme.yaml')}",

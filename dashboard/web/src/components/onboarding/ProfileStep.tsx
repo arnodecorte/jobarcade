@@ -48,7 +48,11 @@ export function ProfileStep({ onboarding, onBack, onSkip, onContinue, reload }: 
     };
   }, []);
 
-  const set = <K extends keyof typeof f>(key: K, value: (typeof f)[K]) => setF((prev) => ({ ...prev, [key]: value }));
+  const set = <K extends keyof typeof f>(key: K, value: (typeof f)[K]) => {
+    if (key === "linkedin") setLinkedinUrl("");
+    if (key === "portfolio") setPortfolioUrl("");
+    setF((prev) => ({ ...prev, [key]: value }));
+  };
 
   async function save() {
     setSaving(true);
