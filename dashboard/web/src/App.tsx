@@ -93,7 +93,7 @@ export function App() {
     return (
       <>
         <Grainient />
-        <Onboarding onboarding={data.onboarding} integrations={data.integrations} reload={reload} />
+        <Onboarding onboarding={data.onboarding} integrations={data.integrations} goals={data.goals} reload={reload} />
       </>
     );
   }

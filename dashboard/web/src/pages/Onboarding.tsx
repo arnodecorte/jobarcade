@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import type { IntegrationStatus, OnboardingState } from "../lib/api";
+import type { Goals, IntegrationStatus, OnboardingState } from "../lib/api";
 import { setOnboardingStep, skipOnboarding } from "../lib/api";
 import { navigate } from "../lib/hooks";
 import { isStep, nextStep, prevStep, STEPS } from "../lib/onboarding";
@@ -17,9 +17,9 @@ const LABELS: Record<Step, string> = {
   welcome: "Welcome", ai: "Local AI", profile: "About you", style: "CV style", chameleon: "Chameleon", goal: "Your pace",
 };
 
-type Props = { onboarding: OnboardingState; integrations: IntegrationStatus; reload: () => void };
+type Props = { onboarding: OnboardingState; integrations: IntegrationStatus; goals: Goals; reload: () => void };
 
-export function Onboarding({ onboarding, integrations, reload }: Props) {
+export function Onboarding({ onboarding, integrations, goals, reload }: Props) {
   const reduce = useReducedMotion();
   const [step, setStep] = useState<Step>(isStep(onboarding.step) ? onboarding.step : "welcome");
   const [dir, setDir] = useState(1);
@@ -57,7 +57,7 @@ export function Onboarding({ onboarding, integrations, reload }: Props) {
 
   const advance = () => go(nextStep(step), 1);
   const stepProps: StepProps = {
-    integrations, onboarding, reload,
+    integrations, onboarding, goals, reload,
     onBack: prevStep(step) ? () => go(prevStep(step), -1) : null,
     onSkip: advance,
     onContinue: advance,

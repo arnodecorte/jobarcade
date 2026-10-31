@@ -1,12 +1,20 @@
 import { useState } from "react";
 import { completeOnboarding, saveGoals } from "../../lib/api";
-import { DEFAULT_PRIOR, PRIOR_SOURCES } from "../../lib/odds";
+import { initialGoalValues } from "../../lib/onboarding";
+import { PRIOR_SOURCES } from "../../lib/odds";
 import { StepFooter, StepHead } from "./StepFooter";
 import type { StepProps } from "./types";
 
-export function GoalStep({ onBack, onContinue, reload, onboarding }: StepProps) {
-  const [goal, setGoal] = useState(3);
-  const [prior, setPrior] = useState(DEFAULT_PRIOR);
+export function GoalStep({ onBack, onContinue, reload, onboarding, goals }: StepProps) {
+  const initial = initialGoalValues(goals);
+  const [goal, setGoalState] = useState(initial.goal);
+  const [cadence, setCadence] = useState(initial.cadence);
+  const [prior, setPrior] = useState(initial.prior);
+  // Cadence defaults to the goal: it follows the goal while the two still match.
+  const setGoal = (next: number) => {
+    if (cadence === goal) setCadence(next);
+    setGoalState(next);
+  };
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const clamp = (n: number) => Math.min(20, Math.max(1, n));
@@ -15,7 +23,7 @@ export function GoalStep({ onBack, onContinue, reload, onboarding }: StepProps) 
     setSaving(true);
     setError("");
     try {
-      if (save) await saveGoals({ daily_goal: goal, odds_cadence: goal, odds_prior: prior });
+      if (save) await saveGoals({ daily_goal: goal, odds_cadence: cadence, odds_prior: prior });
       await completeOnboarding();
       reload();
       await onContinue();

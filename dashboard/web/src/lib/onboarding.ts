@@ -1,3 +1,6 @@
+import type { Goals } from "./api";
+import { DEFAULT_PRIOR } from "./odds";
+
 export const STEPS = ["welcome", "ai", "profile", "style", "chameleon", "goal"] as const;
 export type Step = (typeof STEPS)[number];
 
@@ -35,4 +38,21 @@ export function linesToList(text: string): string[] {
     out.push(item);
   }
   return out;
+}
+
+export const DEFAULT_DAILY_GOAL = 3;
+
+/** Starting values for the goal step: the saved goals when configured, otherwise the defaults. */
+export function initialGoalValues(goals: Pick<Goals, "configured" | "daily_goal" | "odds_cadence" | "odds_prior"> | null | undefined) {
+  if (!goals || !goals.configured) return { goal: DEFAULT_DAILY_GOAL, cadence: DEFAULT_DAILY_GOAL, prior: DEFAULT_PRIOR };
+  return { goal: goals.daily_goal, cadence: goals.odds_cadence, prior: goals.odds_prior };
+}
+
+export type AiTestOutcome = { kind: "ok" } | { kind: "unreachable"; detail: string } | { kind: "save-error"; message: string };
+
+/** A failed save/validation is the user's input problem; only a failed connection test means "not reachable". */
+export function aiTestOutcome(stage: "save" | "test", result: { ok: boolean; error?: string } | Error): AiTestOutcome {
+  if (stage === "save") return { kind: "save-error", message: result instanceof Error ? result.message : result.error || "Could not save." };
+  if (result instanceof Error) return { kind: "unreachable", detail: result.message };
+  return result.ok ? { kind: "ok" } : { kind: "unreachable", detail: result.error || "" };
 }

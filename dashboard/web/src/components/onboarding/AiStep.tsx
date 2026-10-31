@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { saveOllamaIntegration, testOllamaIntegration } from "../../lib/api";
+import { aiTestOutcome } from "../../lib/onboarding";
 import { StepFooter, StepHead } from "./StepFooter";
 import type { StepProps } from "./types";
 
@@ -41,30 +42,38 @@ export function AiStep({ integrations, onBack, onSkip, onContinue, reload }: Ste
     setError("");
     try {
       await persist(); // the server tests whatever is saved
-      setKey("");
-      const result = await testOllamaIntegration();
-      if (result.ok) {
-        const list = result.models || [];
-        setAvailable(list);
-        setTested("ok");
-        setTestMsg(result.model_present === false ? `Connected, but ${result.model} is not pulled yet.` : "Connected.");
-        // Point any role at a model that isn't installed to the first one that is.
-        if (list.length) {
-          setModels((m) => {
-            const fix = (v: string) => (list.includes(v) ? v : list[0]);
-            return { draft: fix(m.draft), refine: fix(m.refine), classify: fix(m.classify) };
-          });
-        }
-      } else {
-        setTested("fail");
-        setTestMsg(result.error || "");
-      }
     } catch (err) {
-      setTested("fail");
-      setTestMsg((err as Error).message);
-    } finally {
+      const out = aiTestOutcome("save", err as Error);
+      setTested("idle");
+      if (out.kind === "save-error") setError(out.message);
       setTesting(false);
+      return;
     }
+    setKey("");
+    let result: { ok: boolean; models?: string[]; model: string; model_present?: boolean; error?: string } | Error;
+    try {
+      result = await testOllamaIntegration();
+    } catch (err) {
+      result = err as Error;
+    }
+    const out = aiTestOutcome("test", result);
+    if (out.kind === "ok" && !(result instanceof Error)) {
+      const list = result.models || [];
+      setAvailable(list);
+      setTested("ok");
+      setTestMsg(result.model_present === false ? `Connected, but ${result.model} is not pulled yet.` : "Connected.");
+      // Point any role at a model that isn't installed to the first one that is.
+      if (list.length) {
+        setModels((m) => {
+          const fix = (v: string) => (list.includes(v) ? v : list[0]);
+          return { draft: fix(m.draft), refine: fix(m.refine), classify: fix(m.classify) };
+        });
+      }
+    } else if (out.kind === "unreachable") {
+      setTested("fail");
+      setTestMsg(out.detail);
+    }
+    setTesting(false);
   }
 
   async function save() {
