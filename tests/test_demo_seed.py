@@ -19,7 +19,7 @@ def test_seed_demo_creates_five_jobs_and_one_draft(tmp_path):
     rows = conn.execute("SELECT status FROM jobs WHERE source_platform = ?", (DEMO_SOURCE,)).fetchall()
     statuses = sorted(r["status"] for r in rows)
     assert statuses == ["applied", "applied", "applied", "new", "rejected"]
-    folder = apps / "Lumen-Collective-Demo-Role"
+    folder = apps / "Lumen-Collective-Brand-Designer"
     assert result["draft_folder"] == str(folder)
     for name in ("cv-data.yaml", "letter-data.yaml", "brand-theme.yaml", "job-listing.md"):
         assert (folder / name).is_file()
@@ -47,7 +47,7 @@ def test_clear_demo_removes_only_demo_rows(tmp_path):
     assert conn.execute("SELECT COUNT(*) n FROM jobs").fetchone()["n"] == 1
     assert conn.execute("SELECT COUNT(*) n FROM jobs WHERE source_platform='demo'").fetchone()["n"] == 0
     assert conn.execute("SELECT COUNT(*) n FROM status_events WHERE job_id NOT IN (SELECT id FROM jobs)").fetchone()["n"] == 0
-    assert not (apps / "Lumen-Collective-Demo-Role").exists()
+    assert not (apps / "Lumen-Collective-Brand-Designer").exists()
     assert other.exists()
 
 
@@ -64,9 +64,30 @@ def test_demo_routes(dashboard_server, tmp_path, monkeypatch):
     monkeypatch.setattr(dashboard, "APPLICATIONS_DIR", apps)
     status, body, _ = dashboard_server("POST", "/api/demo/seed", {})
     assert status == 200 and body["jobs"] == 5
-    assert (apps / "Lumen-Collective-Demo-Role" / "cv-data.yaml").is_file()
+    assert (apps / "Lumen-Collective-Brand-Designer" / "cv-data.yaml").is_file()
     status, body, _ = dashboard_server("POST", "/api/demo/seed", {})
     assert status == 200 and body["jobs"] == 0
     status, body, _ = dashboard_server("DELETE", "/api/demo")
     assert status == 200 and body["removed"] == 5
-    assert not (apps / "Lumen-Collective-Demo-Role").exists()
+    assert not (apps / "Lumen-Collective-Brand-Designer").exists()
+
+
+def test_clear_demo_keeps_same_named_folder_without_demo_marker(tmp_path):
+    conn = _conn(tmp_path)
+    apps = tmp_path / "Applications"
+    folder = apps / "Lumen-Collective-Brand-Designer"
+    folder.mkdir(parents=True)
+    (folder / "cv-data.yaml").write_text("mine: true\n")
+    (folder / "brand-theme.yaml").write_text("provider: local\n")
+    clear_demo(conn, apps)
+    assert (folder / "cv-data.yaml").read_text() == "mine: true\n"
+
+
+def test_dashboard_links_demo_draft_to_demo_job(tmp_path, monkeypatch):
+    conn = _conn(tmp_path)
+    apps = tmp_path / "Applications"
+    monkeypatch.setattr(dashboard, "APPLICATIONS_DIR", apps)
+    seed_demo(conn, apps)
+    row = conn.execute("SELECT * FROM jobs WHERE company = 'Lumen Collective'").fetchone()
+    job = dashboard._job_row(row, dashboard.application_artifacts())
+    assert job["artifact"]["folder_name"] == "Lumen-Collective-Brand-Designer"
