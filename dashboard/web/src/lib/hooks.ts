@@ -56,18 +56,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): Async<T
   return { data, error, loading, reload: () => setNonce((n) => n + 1) };
 }
 
-const ONBOARDED_KEY = "jobhunt.onboarded.v1";
 const CHAMELEON_UPDATE_KEY = "jobhunt.chameleon.update.v1";
-
-/** Shows the splash exactly once per browser — there's no login, so a device/browser is the visitor. */
-export function useFirstVisit(): [boolean, () => void] {
-  const [show, setShow] = useState(() => !window.localStorage.getItem(ONBOARDED_KEY));
-  const dismiss = () => {
-    window.localStorage.setItem(ONBOARDED_KEY, "1");
-    setShow(false);
-  };
-  return [show, dismiss];
-}
 
 export function useChameleonUpdateSplash(): [boolean, () => void] {
   const [show, setShow] = useState(() => !window.localStorage.getItem(CHAMELEON_UPDATE_KEY));

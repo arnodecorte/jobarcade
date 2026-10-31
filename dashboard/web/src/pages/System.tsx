@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { PageProps } from "../App";
 import type { Company } from "../lib/api";
-import { addCompany } from "../lib/api";
+import { addCompany, resetOnboarding } from "../lib/api";
+import { navigate } from "../lib/hooks";
 import { PageHeader } from "../components/PageHeader";
 import { CompanyLogo } from "../components/CompanyLogo";
 import { GmailEvidencePanel } from "../components/GmailEvidencePanel";
@@ -34,6 +35,16 @@ export function System({ data, reload, refreshing }: PageProps) {
   const [msg, setMsg] = useState("");
   const health = summary.scraper_health_counts || {};
   const rows = sortCompanies(companies);
+
+  async function rerunSetup() {
+    try {
+      await resetOnboarding();
+      reload();
+      navigate("setup");
+    } catch (err) {
+      setMsg((err as Error).message);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -68,6 +79,14 @@ export function System({ data, reload, refreshing }: PageProps) {
       />
 
       <div className="system-stack">
+        <section className="panel ob-rerun">
+          <div>
+            <h2>First-run setup</h2>
+            <p className="panel-sub">Walk through the AI, profile, CV style and goal steps again. Your data stays as it is until you save.</p>
+          </div>
+          <button type="button" className="btn ghost" onClick={rerunSetup}>Re-run setup</button>
+        </section>
+
         <SystemDisclosure
           title="Gmail intelligence"
           summary={`${data.gmail.metrics.pending_review} need review · ${data.gmail.metrics.auto_applied} auto-applied`}

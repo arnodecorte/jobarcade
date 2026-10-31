@@ -349,7 +349,11 @@ export type IntegrationStatus = {
     base_url: string;
     model: string;
     source: "vault" | "environment" | string;
+    api_key_set?: boolean;
+    models?: { draft: string; refine: string; classify: string };
   };
+  firecrawl?: { configured: boolean; source: string };
+  features?: { scraper: boolean };
   vault: { ready: boolean; key_path: string };
 };
 
@@ -576,14 +580,20 @@ export const saveGmailIntegration = (body: {
 export const clearGmailIntegration = () =>
   api<IntegrationStatus>("/api/integrations/gmail", { method: "DELETE" });
 
-export const saveOllamaIntegration = (body: { base_url: string; model: string }) =>
+export const saveOllamaIntegration = (body: {
+  base_url: string;
+  model: string;
+  api_key?: string;
+  clear_api_key?: boolean;
+  models?: { draft: string; refine: string; classify: string };
+}) =>
   api<IntegrationStatus>("/api/integrations/ollama", {
     method: "PUT",
     body: JSON.stringify(body),
   });
 
 export const testOllamaIntegration = () =>
-  api<{ ok: boolean; model: string; model_present: boolean; error?: string }>(
+  api<{ ok: boolean; model: string; model_present: boolean; models?: string[]; error?: string }>(
     "/api/integrations/ollama/test",
     { method: "POST", body: "{}" },
   );
@@ -662,3 +672,92 @@ export const saveGoals = (body: Partial<Goals>) =>
     method: "PUT",
     body: JSON.stringify(body),
   });
+
+// ---- onboarding ----
+
+export type OnboardingChecks = { ai: boolean; profile: boolean; style: boolean; chameleon: boolean; goal: boolean };
+export type OnboardingState = {
+  status: "pending" | "skipped" | "complete";
+  step: string;
+  checks: OnboardingChecks;
+  profile_error?: string | null;
+};
+
+export const getOnboarding = () => api<OnboardingState>("/api/onboarding");
+const post = <T>(path: string, body: unknown = {}) => api<T>(path, { method: "POST", body: JSON.stringify(body) });
+export const setOnboardingStep = (step: string) => post<OnboardingState>("/api/onboarding/step", { step });
+export const completeOnboarding = () => post<OnboardingState>("/api/onboarding/complete");
+export const skipOnboarding = () => post<OnboardingState>("/api/onboarding/skip");
+export const resetOnboarding = () => post<OnboardingState>("/api/onboarding/reset");
+export const seedDemo = () => post<{ jobs: number; draft_folder: string }>("/api/demo/seed");
+
+export type ProfileDoc = {
+  candidate?: {
+    name?: string;
+    tagline?: string;
+    contact?: {
+      email?: string;
+      phone?: string;
+      location?: string;
+      linkedin?: string;
+      linkedin_url?: string;
+      portfolio?: string;
+      portfolio_url?: string;
+    };
+    career_facts?: string;
+    skills?: string[];
+  };
+  target_preferences?: {
+    target_roles?: string[];
+    adjacent_roles?: string[];
+    excluded_functions?: string[];
+    target_locations?: string[];
+    preferred_cities?: string[];
+    allow_remote?: boolean;
+    max_years_experience?: number | null;
+    exclude_senior_titles?: boolean;
+    exclude_internships?: boolean;
+    excluded_language_patterns?: string[];
+  };
+};
+
+export const getProfile = () => api<ProfileDoc>("/api/profile");
+export const saveProfile = (body: ProfileDoc) =>
+  api<ProfileDoc>("/api/profile", { method: "PUT", body: JSON.stringify(body) });
+
+export type StyleDoc = {
+  cv_variant: string;
+  accent: string;
+  font: string;
+  mode: "light" | "dark" | string;
+  configured?: boolean;
+  warnings?: string[];
+};
+export type StyleState = StyleDoc & { variants: string[]; fonts: string[] };
+
+export const getStyle = () => api<StyleState>("/api/style");
+export const saveStyle = (body: Pick<StyleDoc, "cv_variant" | "accent" | "font" | "mode">) =>
+  api<StyleDoc>("/api/style", { method: "PUT", body: JSON.stringify(body) });
+
+/** Renders the CV preview server-side; resolves to a PNG blob. */
+export async function previewStyle(body: Pick<StyleDoc, "cv_variant" | "accent" | "font" | "mode">, signal?: AbortSignal): Promise<Blob> {
+  const res = await fetch("/api/style/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}));
+    throw new Error((payload as { error?: string }).error || `Preview failed: ${res.status}`);
+  }
+  return res.blob();
+}
+
+export const saveFirecrawlKey = (api_key: string) =>
+  api<unknown>("/api/integrations/firecrawl", { method: "PUT", body: JSON.stringify({ api_key }) });
+export const testFirecrawl = (url?: string) =>
+  post<{ ok: boolean; accent?: string; mode?: string; dark_recommended?: boolean; warnings?: string[]; error?: string }>(
+    "/api/integrations/firecrawl/test",
+    url ? { url } : {},
+  );

@@ -1,17 +1,18 @@
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { getCompanies, getGoals, getGmailEvidence, getGmailStatus, getIntegrationStatus, getJobs, getStats, getSummary, saveGoals } from "./lib/api";
-import type { Company, Coverage, Goals, GmailEvidence, GmailStatus, IntegrationStatus, Job, Stats, Summary } from "./lib/api";
-import { useAsync, useChameleonUpdateSplash, useFirstVisit, useHashRoute } from "./lib/hooks";
+import { getCompanies, getGoals, getGmailEvidence, getGmailStatus, getIntegrationStatus, getJobs, getOnboarding, getStats, getSummary, saveGoals } from "./lib/api";
+import type { Company, Coverage, Goals, GmailEvidence, GmailStatus, IntegrationStatus, Job, OnboardingState, Stats, Summary } from "./lib/api";
+import { useAsync, useChameleonUpdateSplash, useHashRoute } from "./lib/hooks";
 import { DraftProvider } from "./lib/draftContext";
 import { BubbleMenu } from "./components/BubbleMenu";
 import { Loading } from "./components/Sprite";
 import { Grainient } from "./components/Grainient";
 import { AmbientAngie } from "./components/AmbientAngie";
 import { DraftOverlay } from "./components/DraftOverlay";
-import { Splash } from "./components/Splash";
 import { ChameleonUpdateSplash } from "./components/ChameleonUpdateSplash";
 import { FeedbackChip } from "./components/FeedbackChip";
+import { Onboarding } from "./pages/Onboarding";
+import { shouldShowOnboarding } from "./lib/onboarding";
 import { Today } from "./pages/Today";
 import { Pipeline } from "./pages/Pipeline";
 import { Jobs } from "./pages/Jobs";
@@ -32,12 +33,13 @@ export type DashData = {
   gmailEvidence: GmailEvidence[];
   integrations: IntegrationStatus;
   goals: Goals;
+  onboarding: OnboardingState;
 };
 
 export type PageProps = { data: DashData; reload: () => void; refreshing: boolean };
 
 async function loadAll(): Promise<DashData> {
-  const [summary, jobs, companies, stats, gmail, gmailEvidence, integrations, goals] = await Promise.all([
+  const [summary, jobs, companies, stats, gmail, gmailEvidence, integrations, goals, onboarding] = await Promise.all([
     getSummary(),
     getJobs(),
     getCompanies(),
@@ -46,6 +48,7 @@ async function loadAll(): Promise<DashData> {
     getGmailEvidence(),
     getIntegrationStatus(),
     getGoals(),
+    getOnboarding(),
   ]);
   return {
     summary,
@@ -57,13 +60,13 @@ async function loadAll(): Promise<DashData> {
     gmailEvidence: gmailEvidence.evidence,
     integrations,
     goals,
+    onboarding,
   };
 }
 
 export function App() {
   const route = useHashRoute();
   const { data, error, loading, reload } = useAsync(loadAll);
-  const [showSplash, dismissSplash] = useFirstVisit();
   const [showChameleonUpdate, dismissChameleonUpdate] = useChameleonUpdateSplash();
   const migrated = useRef(false);
   useEffect(() => {
@@ -86,11 +89,19 @@ export function App() {
   }, [data]);
   const freshCount = data ? freshJobs(data.jobs).rows.length : 0;
 
+  if (data && shouldShowOnboarding(data.onboarding.status, route)) {
+    return (
+      <>
+        <Grainient />
+        <Onboarding onboarding={data.onboarding} integrations={data.integrations} reload={reload} />
+      </>
+    );
+  }
+
   return (
     <DraftProvider onGenerated={reload}>
       <Grainient />
-      {showSplash && route === "today" && <Splash onDismiss={dismissSplash} />}
-      {!showSplash && showChameleonUpdate && <ChameleonUpdateSplash onDismiss={dismissChameleonUpdate} />}
+      {data?.onboarding.status === "complete" && showChameleonUpdate && <ChameleonUpdateSplash onDismiss={dismissChameleonUpdate} />}
       <BubbleMenu route={route} freshCount={freshCount} />
       <div className="shell">
         <AnimatePresence mode="wait" initial={false}>

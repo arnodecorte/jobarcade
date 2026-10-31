@@ -7,6 +7,7 @@ import { JobRow } from "../components/JobRow";
 import { Companion } from "../components/Companion";
 import { InterviewMilestone } from "../components/InterviewMilestone";
 import { navigate } from "../lib/hooks";
+import { needsSetupBanner } from "../lib/onboarding";
 import { formatDate, OUTCOME_STATUSES, PIPELINE_STATUSES, STATUS_LABELS } from "../lib/format";
 import { applyTodayQueue } from "../lib/jobs";
 import { effectiveRate, etaDays, formatEta } from "../lib/odds";
@@ -61,6 +62,16 @@ export function Today({ data, reload, refreshing }: PageProps) {
         onRefresh={reload}
         refreshing={refreshing}
       />
+
+      {needsSetupBanner(data.onboarding.status, data.onboarding.checks) && (
+        <div className="setup-banner" role="status">
+          <div>
+            <strong>Finish setup to unlock AI drafts</strong>
+            <span>Connect your local Ollama and JobArcade can tailor each application for you. It takes about a minute.</span>
+          </div>
+          <button type="button" className="btn rose sm" onClick={() => navigate("setup")}>Finish setup</button>
+        </div>
+      )}
 
       <InterviewMilestone jobs={jobs} />
 
