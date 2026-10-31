@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { seedDemo } from "../../lib/api";
-import { Angie } from "../Sprite";
+import { Dice } from "../Sprite";
 import type { StepProps } from "./types";
 
 export const PITCH = "Local AI tailors every application. Every no gets you closer to a yes — it only needs to work once.";
@@ -25,7 +25,7 @@ export function WelcomeStep({ onContinue, reload }: StepProps) {
 
   return (
     <section className="ob-welcome">
-      <Angie size="lg" state="wave" />
+      <Dice size="lg" state="wave" />
       <span className="pill" style={{ background: "var(--berry-soft)", color: "var(--berry-deep)" }}>
         Welcome to JobArcade
       </span>

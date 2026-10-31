@@ -5,7 +5,7 @@ import { EDITABLE_STATUSES, STATUS_LABELS } from "../lib/format";
 
 const ADD_STATUSES = EDITABLE_STATUSES.filter((s) => s !== "skipped" && s !== "expired" && s !== "scrape_failed");
 
-/** "+ Add Job" — lets Angie track a role the scrapers never saw, next to Refresh on every page. */
+/** "+ Add Job" — lets Dice track a role the scrapers never saw, next to Refresh on every page. */
 export function AddJobButton({ onAdded }: { onAdded: () => void }) {
   const scraper = useScraperEnabled();
   const [open, setOpen] = useState(false);

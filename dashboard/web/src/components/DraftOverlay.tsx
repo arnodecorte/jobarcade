@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDraft } from "../lib/draftContext";
-import { Angie } from "./Sprite";
+import { Dice } from "./Sprite";
 
 const THINKING_LINES = [
   "Reading the job listing",
@@ -56,7 +56,7 @@ export function DraftOverlay() {
     return (
       <div className="modal-backdrop is-busy" role="status" aria-live="polite">
         <section className="draft-loading-card">
-          <Angie size="md" />
+          <Dice size="md" />
           <div>
             <h2>Warming up AI engine</h2>
             <p>Loading model into memory — will retry automatically…</p>
@@ -71,7 +71,7 @@ export function DraftOverlay() {
       <div className="modal-backdrop is-busy" role="status" aria-live="polite">
         <section className="draft-loading-card">
           <button type="button" className="draft-minimize-button" onClick={minimize}>Minimize</button>
-          <Angie size="md" />
+          <Dice size="md" />
           <div>
             <h2>Generating draft pack</h2>
             <p>{draft.title} · {draft.company}</p>
@@ -87,7 +87,7 @@ export function DraftOverlay() {
     return (
       <aside className="draft-status-chip" role="status" aria-live="polite">
         <button type="button" className="draft-chip-main" onClick={restore} aria-label="Restore draft generation status">
-          <Angie size="sm" />
+          <Dice size="sm" />
           <div>
             <strong>Generating draft pack</strong>
             <span>{draft.title} · {draft.company}</span>
@@ -101,7 +101,7 @@ export function DraftOverlay() {
   if (draft.phase === "ready") {
     return (
       <aside className="draft-status-chip is-ready" aria-live="polite">
-        <Angie size="sm" />
+        <Dice size="sm" />
         <div>
           <strong>Draft pack ready</strong>
           <span>{draft.title} · {draft.company}</span>
@@ -118,7 +118,7 @@ export function DraftOverlay() {
 
   return (
     <aside className="draft-status-chip is-error" aria-live="polite">
-      <Angie size="sm" />
+      <Dice size="sm" />
       <div>
         <strong>Draft generation failed</strong>
         <span>{draft.error}</span>

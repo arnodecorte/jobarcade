@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Angie } from "./Sprite";
+import { Dice } from "./Sprite";
 import { formatEta } from "../lib/odds";
 import type { Celebration } from "../lib/odds";
 
@@ -36,7 +36,7 @@ export function GoalCelebration({ goal, stats, onDismiss }: Props) {
         transition={{ type: "spring", stiffness: 260, damping: 22 }}
       >
         <div className="celebrate-mascot">
-          <Angie size="lg" state="wave" />
+          <Dice size="lg" state="wave" />
         </div>
         <h2 id="celebrate-title">Goal hit — {goal} rolls today!</h2>
         <p>

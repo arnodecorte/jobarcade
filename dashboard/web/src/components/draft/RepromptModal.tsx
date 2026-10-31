@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Angie } from "../Sprite";
+import { Dice } from "../Sprite";
 import { repromptDraft, warmupOllama, type DraftDoc, type CvData, type LetterData } from "../../lib/api";
 import type { CvState } from "./CVEditor";
 import type { LetterState } from "./LetterEditor";
@@ -103,7 +103,7 @@ export function RepromptModal({
     return (
       <div className="modal-backdrop is-busy" role="status" aria-live="polite">
         <section className="draft-loading-card">
-          <Angie size="md" state="work" />
+          <Dice size="md" state="work" />
           <div>
             <h2>{warming ? "Warming up AI engine" : "Reprompting draft"}</h2>
             <p>

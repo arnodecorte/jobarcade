@@ -7,7 +7,7 @@ import { DraftProvider } from "./lib/draftContext";
 import { BubbleMenu } from "./components/BubbleMenu";
 import { Loading } from "./components/Sprite";
 import { Grainient } from "./components/Grainient";
-import { AmbientAngie } from "./components/AmbientAngie";
+import { AmbientDice } from "./components/AmbientDice";
 import { DraftOverlay } from "./components/DraftOverlay";
 import { ChameleonUpdateSplash } from "./components/ChameleonUpdateSplash";
 import { Toast } from "./components/Toast";
@@ -155,7 +155,7 @@ export function App() {
       </div>
       <DraftOverlay />
       <FeedbackChip />
-      <AmbientAngie />
+      <AmbientDice />
       <Toast message={toast} onClose={closeToast} />
     </DraftProvider>
     </ScraperContext.Provider>

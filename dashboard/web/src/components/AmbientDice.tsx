@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Angie } from "./Sprite";
+import { Dice } from "./Sprite";
 
-/* Every few minutes Angie dashes across the bottom of the screen — a small
+/* Every few minutes Dice dashes across the bottom of the screen — a small
    moment of life, never in the way (pointer-events: none, low corner). */
 const MIN_GAP = 300_000; // 5 min
 const JITTER = 180_000; // up to +3 min
 
-export function AmbientAngie() {
+export function AmbientDice() {
   const [walking, setWalking] = useState(false);
   const reduceMotion = useReducedMotion();
 
@@ -25,7 +25,7 @@ export function AmbientAngie() {
     <AnimatePresence>
       {walking && (
         <motion.div
-          key="ambient-angie"
+          key="ambient-dice"
           style={{ position: "fixed", bottom: 0, left: 0, zIndex: 5, pointerEvents: "none" }}
           initial={{ x: "-12vw" }}
           animate={{ x: "112vw" }}
@@ -36,7 +36,7 @@ export function AmbientAngie() {
             window.setTimeout(() => setWalking(true), MIN_GAP + Math.random() * JITTER);
           }}
         >
-          <Angie size="lg" state="trot" />
+          <Dice size="lg" state="trot" />
         </motion.div>
       )}
     </AnimatePresence>

@@ -9,20 +9,20 @@ export type SpriteState =
   | "work"
   | "read";
 
-export function Angie({
+export function Dice({
   size = "md",
   state = "walk",
 }: {
   size?: "sm" | "md" | "lg";
   state?: SpriteState;
 }) {
-  return <div className={`angie ${size} state-${state}`} aria-hidden="true" />;
+  return <div className={`dice ${size} state-${state}`} aria-hidden="true" />;
 }
 
 export function Loading({ message = "Loading your hunt…" }: { message?: string }) {
   return (
     <div className="loading-screen" role="status" aria-live="polite">
-      <Angie size="lg" state="work" />
+      <Dice size="lg" state="work" />
       <p>{message}</p>
     </div>
   );

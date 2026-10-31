@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Angie, type SpriteState } from "./Sprite";
+import { Dice, type SpriteState } from "./Sprite";
 
 const IDLE: SpriteState = "type"; // working away at her desk beside you
-const WAVE_MS = 2160; // 3 wave loops × 720ms, matches angie-wave in app.css
+const WAVE_MS = 2160; // 3 wave loops × 720ms, matches dice-wave in app.css
 
 export function Companion({ message }: { message: string }) {
   const [spriteState, setSpriteState] = useState<SpriteState>(IDLE);
@@ -31,7 +31,7 @@ export function Companion({ message }: { message: string }) {
           </motion.div>
         )}
       </AnimatePresence>
-      <Angie size="sm" state={spriteState} />
+      <Dice size="sm" state={spriteState} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useHashRoute } from "../lib/hooks";
 
 type Mode = "collapsed" | "open" | "sending" | "sent";
 
-/** Persistent corner chip — opposite the Angie companion — for quick improvement notes. */
+/** Persistent corner chip — opposite the Dice companion — for quick improvement notes. */
 export function FeedbackChip() {
   const route = useHashRoute();
   const [mode, setMode] = useState<Mode>("collapsed");

@@ -27,7 +27,7 @@ import {
 import { uuid } from "../lib/uuid";
 import type { SortableRole } from "../components/draft/SortableRoleBlock";
 
-const CHAMELEON_LAUNCH_KEY = "angelica.chameleon.launch.v1";
+const CHAMELEON_LAUNCH_KEY = "jobhunt.chameleon.launch.v1";
 
 // ── Converters between API shape and sortable-state shape ──
 
