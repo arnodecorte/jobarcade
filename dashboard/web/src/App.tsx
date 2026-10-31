@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { getCompanies, getGoals, getGmailEvidence, getGmailStatus, getIntegrationStatus, getJobs, getOnboarding, getStats, getSummary, saveGoals } from "./lib/api";
 import type { Company, Coverage, Goals, GmailEvidence, GmailStatus, IntegrationStatus, Job, OnboardingState, Stats, Summary } from "./lib/api";
@@ -10,6 +10,8 @@ import { Grainient } from "./components/Grainient";
 import { AmbientAngie } from "./components/AmbientAngie";
 import { DraftOverlay } from "./components/DraftOverlay";
 import { ChameleonUpdateSplash } from "./components/ChameleonUpdateSplash";
+import { Toast } from "./components/Toast";
+import { rejectionMessage } from "./lib/odds";
 import { FeedbackChip } from "./components/FeedbackChip";
 import { Onboarding } from "./pages/Onboarding";
 import { shouldShowOnboarding } from "./lib/onboarding";
@@ -87,6 +89,18 @@ export function App() {
         .catch(() => undefined);
     }
   }, [data]);
+  const [toast, setToast] = useState<string | null>(null);
+  const closeToast = useCallback(() => setToast(null), []);
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  useEffect(() => {
+    const onRejected = () => {
+      const d = dataRef.current;
+      if (d) setToast(rejectionMessage(d.stats.lifecycle.submitted_total, d.goals.odds_prior));
+    };
+    window.addEventListener("jobarcade:rejected", onRejected);
+    return () => window.removeEventListener("jobarcade:rejected", onRejected);
+  }, []);
   const freshCount = data ? freshJobs(data.jobs).rows.length : 0;
 
   if (data && shouldShowOnboarding(data.onboarding.status, route)) {
@@ -139,6 +153,7 @@ export function App() {
       <DraftOverlay />
       <FeedbackChip />
       <AmbientAngie />
+      <Toast message={toast} onClose={closeToast} />
     </DraftProvider>
   );
 }

@@ -16,6 +16,7 @@ export function StatusSelect({ jobId, status, onChanged }: Props) {
         setBusy(true);
         try {
           await setJobStatus(jobId, e.target.value);
+          if (e.target.value === "rejected") window.dispatchEvent(new CustomEvent("jobarcade:rejected"));
           onChanged();
         } catch (err) {
           alert((err as Error).message);

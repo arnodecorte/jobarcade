@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { animate, AnimatePresence, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import type { PageProps } from "../App";
 import { PageHeader } from "../components/PageHeader";
@@ -10,7 +10,10 @@ import { navigate } from "../lib/hooks";
 import { needsSetupBanner } from "../lib/onboarding";
 import { formatDate, OUTCOME_STATUSES, PIPELINE_STATUSES, STATUS_LABELS } from "../lib/format";
 import { applyTodayQueue } from "../lib/jobs";
-import { effectiveRate, etaDays, formatEta } from "../lib/odds";
+import { GoalCelebration } from "../components/GoalCelebration";
+import { saveGoals } from "../lib/api";
+import { localIsoDate, shouldCelebrate } from "../lib/celebrate";
+import { celebrationStats, effectiveRate, etaDays, formatEta } from "../lib/odds";
 import { listContainer, listItem, pill, pillsContainer, tile, tilesContainer } from "../lib/motion";
 
 /* Counts from its previous value up to the target on every change, so a fresh
@@ -41,6 +44,22 @@ export function Today({ data, reload, refreshing }: PageProps) {
   const eta = etaDays(lifecycle.matured_denominator, rate, cadence);
   const remaining = Math.max(0, goal - stats.pulls_today);
 
+  const todayIso = localIsoDate();
+  const [celebrating, setCelebrating] = useState(false);
+  const [handled, setHandled] = useState(false);
+  useEffect(() => {
+    if (!handled && shouldCelebrate(stats.pulls_today, goal, data.goals.last_celebrated_date, todayIso)) setCelebrating(true);
+  }, [handled, stats.pulls_today, goal, data.goals.last_celebrated_date, todayIso]);
+  const dismissCelebration = useCallback(() => {
+    setCelebrating(false);
+    setHandled(true);
+    saveGoals({ last_celebrated_date: todayIso })
+      .then(() => reload())
+      .catch(() => undefined);
+  }, [todayIso, reload]);
+  const sentAfter = lifecycle.submitted_total;
+  const celebration = celebrationStats(Math.max(0, sentAfter - stats.pulls_today), sentAfter, p, cadence);
+
   const metrics: Array<[string, number, string, string]> = [
     ["Discovered", summary.total_jobs || 0, "roles found", "blue"],
     ["Active", summary.active_jobs || 0, "in play", "mint"],
@@ -50,7 +69,7 @@ export function Today({ data, reload, refreshing }: PageProps) {
 
   const companionMsg =
     remaining === 0
-      ? "Goal smashed today! Every pull stacks the deck 💪"
+      ? "Goal hit. Every application stacks the deck. 💪"
       : `${remaining} more application${remaining === 1 ? "" : "s"} to hit today's goal!`;
 
   return (
@@ -180,6 +199,9 @@ export function Today({ data, reload, refreshing }: PageProps) {
       </div>
 
       <Companion message={companionMsg} />
+      <AnimatePresence>
+        {celebrating && <GoalCelebration goal={goal} stats={celebration} onDismiss={dismissCelebration} />}
+      </AnimatePresence>
     </>
   );
 }

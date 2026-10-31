@@ -1194,3 +1194,16 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; lett
 @media (prefers-reduced-motion: reduce) {
   .ob-variant, .ob-preview img { transition: none; }
 }
+
+/* ---- goal celebration + toast ---- */
+.celebrate-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: rgba(42, 36, 64, 0.55); backdrop-filter: blur(4px); }
+.celebrate-card { width: min(460px, 100%); text-align: center; padding: 26px 28px 24px; border-radius: 24px; background: var(--surface); border: 1px solid var(--border-strong); box-shadow: 0 24px 60px rgba(42, 36, 64, 0.35), 0 0 0 6px var(--butter-soft); }
+.celebrate-mascot { display: flex; justify-content: center; margin-bottom: 6px; }
+.celebrate-card h2 { margin: 6px 0 10px; font-size: 1.5rem; color: var(--ink); }
+.celebrate-card p { margin: 0 0 8px; color: var(--ink); line-height: 1.45; }
+.celebrate-card strong { color: var(--mint-deep); font-size: 1.15em; }
+.celebrate-card .celebrate-sub { color: var(--ink-soft); font-size: 0.92rem; }
+.celebrate-btn { margin-top: 12px; padding: 10px 26px; border: none; border-radius: 999px; cursor: pointer; font: inherit; font-weight: 600; color: var(--ink); background: var(--butter); box-shadow: 0 3px 0 var(--butter-deep); }
+.celebrate-btn:hover { filter: brightness(1.04); }
+.toast { position: fixed; left: 50%; bottom: 24px; translate: -50% 0; z-index: 90; max-width: min(540px, calc(100vw - 32px)); display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: 16px; background: var(--dusk-1); color: var(--dusk-ink); border: 1px solid var(--dusk-2); box-shadow: 0 14px 36px rgba(42, 36, 64, 0.4); line-height: 1.4; }
+.toast-close { border: none; background: transparent; color: var(--dusk-ink-soft); font-size: 1.2rem; line-height: 1; cursor: pointer; }
