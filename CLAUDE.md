@@ -39,7 +39,7 @@ When contributing to JobArcade, agents must follow these guidelines:
 
 The workflow is:
 1. Maintain candidate profile and verified career facts in `config/profile.yaml` (starter at `config/profile.example.yaml`).
-2. Capture jobs via URL scraper, manual entry, or API in the web dashboard.
+2. Capture jobs via manual entry or API in the web dashboard (URL scraping is experimental and off by default; enable with `JOBHUNT_ENABLE_SCRAPER=1` or the System toggle).
 3. For each matching role, tailor a CV and motivation letter from the **Typst** templates in `Base/` using zero-hallucination Ollama AI prompts or manual editing.
 4. Compile PDFs with Typst into `Applications/<Company>-<Role-Slug>/`.
 
@@ -49,6 +49,7 @@ Candidate information is decoupled from the codebase:
 - Profile configuration lives in `config/profile.yaml` (loaded via `jobhunt.profile.load_candidate_profile()`).
 - If `config/profile.yaml` is absent, it falls back to `config/profile.example.yaml`.
 - Ground-truth career facts live in `profile.career_facts` and are injected dynamically into AI tailoring prompts.
+- The first-run setup flow writes `config/profile.yaml` and `config/default-theme.yaml`; both are git-ignored and must never be committed.
 - Typst templates consume profile facts dynamically via `--input profile=<path>` or default `config/profile.yaml`.
 
 ## Directory Structure
@@ -67,6 +68,7 @@ Applications/                # Application workspaces (git-ignored)
 config/
   profile.example.yaml       # Starter profile template
   profile.yaml               # Active candidate profile (git-ignored)
+docs/design/                 # Design notes
 dashboard/                   # Web dashboard frontend (HTML/JS/CSS)
 data/                        # SQLite database & runtime data (git-ignored)
 jobhunt/                     # Python backend & CLI
@@ -76,7 +78,8 @@ jobhunt/                     # Python backend & CLI
 
 1. `python -m jobhunt validate` — check config, profile schema, and database connectivity.
 2. `python -m jobhunt dashboard [--host 0.0.0.0] [--port 8765]` — launch the web dashboard and REST API.
-3. `python -m jobhunt scrape-listing "<URL>"` — extract role details from a job listing URL.
+3. `python -m jobhunt scrape-listing "<URL>"` — **deprecated/experimental**: extract role details from a job listing URL (requires the scraper flag).
+   `python -m jobhunt seed-demo [--clear]` — add (or remove) fictional sample jobs and a draft.
 4. `python -m jobhunt tailor-drafts` — run batch AI tailoring on draft applications.
 5. `python -m jobhunt build --company <Company> --role <Role>` — compile Typst PDFs from CLI.
 

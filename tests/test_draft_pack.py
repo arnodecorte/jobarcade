@@ -272,14 +272,14 @@ def test_get_candidate_facts_dynamic():
 def test_reference_application_text_has_no_copyable_prose():
     """The style-targets note fed to the drafting model must stay numbers/tone
     only. An earlier version embedded the full Base/reference CV+letter YAML
-    here, and the local model (qwen3:8b) reliably copied it almost verbatim
+    here, and the local model (qwen2.5:7b) reliably copied it almost verbatim
     instead of tailoring to the job listing -- 11 of 15 auto-drafted CVs in
     the 2026-07-08 batch were byte-identical to Base/reference/cv-data.yaml."""
     text = dashboard._reference_application_text()
 
     assert "do not copy" in text.lower()
     assert "14-18 bullets" in text or "14 to 18 bullets" in text
-    # None of the sample CV/letter CV/letter prose should be reproducible from this note.
+    # None of the sample CV/letter prose should be reproducible from this note.
     assert "Northstar Cloud" not in text
     assert "Studio Kinetix" not in text
 

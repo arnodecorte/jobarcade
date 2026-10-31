@@ -43,24 +43,24 @@ def test_dedupe_prefers_url_then_source_id_then_fuzzy():
 
 
 def test_upsert_skips_acted_upon_duplicate_resurfacing_under_new_url(tmp_path):
-    # Pearl Abyss scenario: a manually-tracked, already-applied job re-surfaces
+    # Re-surfacing scenario: a manually-tracked, already-applied job re-surfaces
     # via a scraper (e.g. an aggregator clickout link) under a different
     # apply_url than the one user actually applied through. The exact
     # dedupe_key won't match, but company+title fuzzy matching should still
     # recognize it and skip creating a duplicate 'new' row.
     conn = init_db(tmp_path / "jobs.sqlite")
     applied = Job(
-        company="Pearl Abyss",
+        company="Harbor & Pine",
         title="Social media manager",
         location="Amstelveen",
-        apply_url="https://apply.workable.com/pearlabyss-europe/j/9D1C67A46B/",
+        apply_url="https://apply.workable.com/harborpine/j/9D1C67A46B/",
         source_platform="manual",
         status="applied",
     )
     upsert_jobs(conn, [applied])
 
     rescraped = Job(
-        company="Pearl Abyss",
+        company="Harbor & Pine",
         title="Social media manager",
         location="Amstelveen",
         apply_url="https://englishjobsearch.nl/clickout/abc123",
@@ -73,7 +73,7 @@ def test_upsert_skips_acted_upon_duplicate_resurfacing_under_new_url(tmp_path):
     rows = conn.execute("SELECT company, title, status, apply_url FROM jobs").fetchall()
     assert len(rows) == 1  # no duplicate row created
     assert rows[0]["status"] == "applied"
-    assert rows[0]["apply_url"] == "https://apply.workable.com/pearlabyss-europe/j/9D1C67A46B/"
+    assert rows[0]["apply_url"] == "https://apply.workable.com/harborpine/j/9D1C67A46B/"
 
 
 def test_missing_jobs_do_not_expire_ready_applied_or_interviewing(tmp_path):

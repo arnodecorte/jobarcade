@@ -11,7 +11,7 @@
 [![Typst PDF Engine](https://img.shields.io/badge/Typesetting-Typst_0.15-239DAD)](#)
 [![Local AI](https://img.shields.io/badge/AI-Ollama_Local_LLM-000000)](#)
 [![Docker Ready](https://img.shields.io/badge/Docker-Compose_Turnkey-2496ED?logo=docker&logoColor=white)](#)
-[![Tests](https://img.shields.io/badge/Tests-196_Passing-10B981)](#)
+[![Tests](https://img.shields.io/badge/Tests-250%2B_Passing-10B981)](#)
 [![Privacy](https://img.shields.io/badge/Privacy-100%25_Local_SQLite-7C3AED)](#)
 
 <br />
@@ -59,7 +59,7 @@ Start your session with a clear daily target. JobArcade ranks your unapplied `co
 
 ---
 
-### 2. The 60-Second AI Tailoring Studio & Brand Chameleon (`/draft`)
+### 2. The 60-Second AI Tailoring Studio & Brand Chameleon (Draft view)
 Click **Create Draft** on any job and your local Ollama model composes role-specific CV bullets and a 3–5 paragraph motivation letter grounded strictly in your verified career facts.
 
 - **Deterministic CV Scrutinizer**: Flags weak proof points (missing numbers/metrics), generic clichés (*"results-driven"*, *"team player"*), or under-filled pages *before* you compile.
@@ -126,35 +126,62 @@ flowchart LR
 
 ---
 
-## 🚀 3-Minute Quickstart (Docker Compose)
+## 🚀 Quickstart (Docker Compose)
 
-### 1. Clone & Create Your Profile
 ```bash
-git clone https://github.com/arnodecorte/jobarcade.git
-cd jobarcade
-
-# Copy the starter profile and fill in your own details & career facts
-cp config/profile.example.yaml config/profile.yaml
+git clone https://github.com/arnodecorte/jobarcade && cd jobarcade
+docker compose up --build
 ```
 
-### 2. Configure Your Local AI & Optional Integrations (`.env`)
-By default, the container connects to Ollama on your host machine (`http://host.docker.internal:11434`). Make sure you have pulled a model:
+Open **[http://localhost:8765](http://localhost:8765)**. A guided setup flow walks you through the rest:
+
+1. **AI** - point JobArcade at Ollama and test the connection.
+2. **Profile** - enter your details and verified career facts (written to the git-ignored `config/profile.yaml`).
+3. **Style** - pick a default accent colour (written to the git-ignored `config/default-theme.yaml`).
+4. **Chameleon** - optionally add a Firecrawl key for company brand extraction.
+5. **Goal** - set your daily application goal.
+
+You can skip setup at any time and come back to it from the System panel.
+
+### Ollama on the host
+Install [Ollama](https://ollama.com) on your host machine (the container reaches it at `http://host.docker.internal:11434`) and pull the default model:
 ```bash
-ollama pull qwen2.5:7b   # or qwen3:8b, llama3.1:8b, mistral, etc.
+ollama pull qwen2.5:7b
+```
+Any other Ollama model works too; change it in setup or via `JOBHUNT_OLLAMA_MODEL`. To use Ollama's hosted cloud API instead, add an optional API key in the setup flow or set `JOBHUNT_OLLAMA_API_KEY`.
+
+### Optional: Firecrawl for Brand Chameleon
+Chameleon works with local CSS/HTML heuristics out of the box. A free [Firecrawl](https://www.firecrawl.dev) key improves brand extraction for JavaScript-heavy sites; add it in setup or set `FIRECRAWL_API_KEY`.
+
+### Try it with demo data
+```bash
+python -m jobhunt seed-demo           # fictional sample jobs and one draft
+python -m jobhunt seed-demo --clear   # remove them again
 ```
 
-*(Optional)* Create a `.env` file if you want to customize the model or enable Firecrawl (for JS-heavy job URLs and Firecrawl brand extraction):
-```bash
-JOBHUNT_OLLAMA_URL=http://host.docker.internal:11434
-JOBHUNT_OLLAMA_MODEL=qwen2.5:7b
-FIRECRAWL_API_KEY=       # Optional: for Firecrawl brand extraction & JS page scraping
-```
+*(Optional)* Copy `.env.example` to `.env` to preset `JOBHUNT_OLLAMA_URL`, `JOBHUNT_OLLAMA_MODEL`, `JOBHUNT_OLLAMA_API_KEY` or `FIRECRAWL_API_KEY`.
 
-### 3. Launch JobArcade
-```bash
-docker compose up -d
-```
-Open **[http://localhost:8765](http://localhost:8765)** in your browser.
+> [!NOTE]
+> URL scraping and job discovery are **experimental and off by default**. Enable them with `JOBHUNT_ENABLE_SCRAPER=1` or the toggle in the System panel. Manual entry is the primary way to add jobs.
+
+---
+
+## 🎲 Meet Dice
+
+Dice is the JobArcade mascot. It keeps you company on the Today view, waves at new messages, and cheers when you hit your daily goal.
+
+---
+
+## 📊 How the Odds Work
+
+The odds engine estimates your chance of at least one interview after N applications as `1 - (1 - p)^N`, where `p` is the per-application interview rate.
+
+- **Prior:** until you have enough matured applications of your own, `p` starts at a **3% prior** (adjustable between 0.5% and 8% in the odds view). As your own data matures it takes over.
+- **Sources for the 3% figure:**
+  - [CareerPlug 2024 Recruiting Metrics](https://www.careerplug.com/recruiting-metrics-and-kpis/) - employer data across 10M+ applications: about 3% of applicants reach an interview.
+  - [Huntr 2025 Annual Job Search Trends](https://huntr.co/research/2025-annual-job-search-trends-report) - job-seeker tracker data: about 3.5% on average, from 2.7% (January) to 4.2% (November).
+
+These are population averages, not promises; your field, seniority and tailoring quality all move the number.
 
 ---
 
@@ -173,7 +200,7 @@ source .venv/bin/activate
 # 2. Install package in editable mode
 pip install -e . pytest
 
-# 3. Create your candidate profile
+# 3. (Optional) pre-fill your profile by hand; otherwise the in-app setup creates it
 cp config/profile.example.yaml config/profile.yaml
 
 # 4. Validate profile, SQLite schema, and Typst compiler
@@ -193,7 +220,8 @@ JobArcade includes a full command-line interface for scripting and agentic workf
 | :--- | :--- |
 | `python -m jobhunt validate` | Verify `config/profile.yaml`, SQLite schema, and `typst` binary installation. |
 | `python -m jobhunt dashboard` | Start the web dashboard server (`--host 127.0.0.1 --port 8765`). |
-| `python -m jobhunt scrape-listing "<URL>"` | Extract structured job title, company, location, and description from a URL. |
+| `python -m jobhunt seed-demo [--clear]` | Add (or remove) fictional sample jobs and a draft for trying the dashboard. |
+| `python -m jobhunt scrape-listing "<URL>"` | *Experimental, deprecated.* Extract job details from a URL (needs `JOBHUNT_ENABLE_SCRAPER=1`). |
 | `python -m jobhunt auto-draft --limit 5` | Batch-generate Ollama CV & cover letter drafts for top-scored unbuilt roles. |
 | `python -m jobhunt build --app <Folder>` | Compile `cv.pdf` and `motivation-letter.pdf` for an application folder via Typst. |
 
@@ -224,7 +252,7 @@ jobarcade/
 │   ├── job_scrape.py         # Single-URL job extractor (JSON-LD / OpenGraph / Firecrawl)
 │   ├── gmail_integration.py  # Optional OAuth inbox classifier for interview/rejection signals
 │   └── database.py           # SQLite schema & lifecycle event ledger
-└── tests/                    # 196 unit, integration, and Typst compilation tests
+└── tests/                    # 250+ unit, integration, and Typst compilation tests
 ```
 
 ---

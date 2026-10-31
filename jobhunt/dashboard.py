@@ -639,7 +639,7 @@ def _job_listing_text(row: sqlite3.Row) -> str:
 def _reference_application_text() -> str:
     # Deliberately NOT the full Base/reference CV/letter prose: an earlier
     # version embedded the complete finished YAML text here, and the local
-    # drafting model (qwen3:8b, temperature 0.25) reliably copied it almost
+    # drafting model (qwen2.5:7b, temperature 0.25) reliably copied it almost
     # verbatim instead of composing fresh, listing-specific content -- 11 of
     # 15 auto-drafted CVs in the 2026-07-08 batch were byte-identical to
     # Base/reference/cv-data.yaml. Keep this to targets a model can't

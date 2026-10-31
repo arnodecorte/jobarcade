@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Dice, type SpriteState } from "./Sprite";
 
-const IDLE: SpriteState = "type"; // working away at her desk beside you
+const IDLE: SpriteState = "type"; // Dice works away at a desk beside you
 const WAVE_MS = 2160; // 3 wave loops × 720ms, matches dice-wave in app.css
 
 export function Companion({ message }: { message: string }) {

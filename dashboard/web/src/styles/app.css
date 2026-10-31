@@ -826,7 +826,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; lett
 /* ========== sprite (8x9 / 96x104 sheet — each row is a separate state) ==========
    Row map (y-offset → state): 0 walk · 1 trot · 2 sit · 3 wave · 4 type ·
    5 gesture · 6 focus · 7 work · 8 read. Frame counts per row are exact
-   (measured from the sheet), so each keyframe steps through only its real frames. */
+   (counted per row of the sprite sheet), so each keyframe steps through only its real frames. */
 .dice {
   --frame-h: 104px; --step: 96px;
   width: var(--step); height: var(--frame-h);
