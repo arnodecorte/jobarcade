@@ -32,12 +32,56 @@ def _example_name():
     return yaml.safe_load(profile_module.EXAMPLE_PROFILE_PATH.read_text())["candidate"]["name"]
 
 
-def test_ensure_profile_copies_example_once(tmp_path):
+def test_ensure_profile_creates_skeleton_once(tmp_path):
     target = tmp_path / "profile.yaml"
     assert ensure_profile_file(target) is True
     target.write_text("candidate:\n  name: Edited\n")
     assert ensure_profile_file(target) is False
     assert "Edited" in target.read_text()
+
+
+def test_fresh_profile_is_a_blank_candidate(tmp_path):
+    target = tmp_path / "profile.yaml"
+    ensure_profile_file(target)
+    raw = yaml.safe_load(target.read_text())
+    cand = raw["candidate"]
+    assert cand["name"] == "" and cand["tagline"] == "" and cand["career_facts"] == ""
+    assert all(value == "" for value in cand["contact"].values())
+    for key in ("skills", "education", "languages", "certifications"):
+        assert cand[key] == []
+    assert cand["signature"] == ""
+    assert _example_name() not in target.read_text()
+    # The permissive, commented target_preferences block is kept.
+    assert raw["target_preferences"]["allow_remote"] is True
+    assert raw["target_preferences"]["target_roles"] == []
+    assert "# Job titles you are aiming for" in target.read_text()
+    assert read_profile_document(target)["candidate"]["career_facts"] == ""
+    assert profile_module.load_candidate_profile(target).search == profile_module.SearchRules()
+
+
+def test_profile_check_requires_real_name(conn, tmp_path):
+    path = tmp_path / "profile.yaml"
+    ensure_profile_file(path)
+    assert onboarding_state(conn, path)["checks"]["profile"] is False
+    path.write_text(f"candidate:\n  name: {_example_name()}\n")
+    assert onboarding_state(conn, path)["checks"]["profile"] is False
+    write_profile_document({"candidate": {"name": "Sam Rivera"}}, path)
+    assert onboarding_state(conn, path)["checks"]["profile"] is True
+
+
+def test_profile_writes_keep_readable_mode(tmp_path):
+    import stat
+
+    path = tmp_path / "profile.yaml"
+    ensure_profile_file(path)
+    write_profile_document({"candidate": {"name": "Sam"}}, path)
+    assert stat.S_IMODE(path.stat().st_mode) & 0o044 == 0o044  # group/other readable, not 0600
+    path.chmod(0o640)
+    write_profile_document({"candidate": {"name": "Sam R"}}, path)
+    assert stat.S_IMODE(path.stat().st_mode) == 0o640
+    fresh = tmp_path / "new" / "profile.yaml"
+    write_profile_document({"candidate": {"name": "Sam"}}, fresh)
+    assert stat.S_IMODE(fresh.stat().st_mode) == 0o644
 
 
 def test_state_defaults_to_pending_with_checks_false(conn, tmp_path):

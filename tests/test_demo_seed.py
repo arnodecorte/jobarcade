@@ -91,3 +91,15 @@ def test_dashboard_links_demo_draft_to_demo_job(tmp_path, monkeypatch):
     row = conn.execute("SELECT * FROM jobs WHERE company = 'Lumen Collective'").fetchone()
     job = dashboard._job_row(row, dashboard.application_artifacts())
     assert job["artifact"]["folder_name"] == "Lumen-Collective-Brand-Designer"
+
+
+def test_onboarding_reports_demo_job_count(dashboard_server, tmp_path, monkeypatch):
+    monkeypatch.setattr(dashboard, "APPLICATIONS_DIR", tmp_path / "Applications")
+    status, body, _ = dashboard_server("GET", "/api/onboarding")
+    assert status == 200 and body["demo_jobs"] == 0
+    dashboard_server("POST", "/api/demo/seed", {})
+    status, body, _ = dashboard_server("GET", "/api/onboarding")
+    assert body["demo_jobs"] == 5
+    dashboard_server("DELETE", "/api/demo")
+    status, body, _ = dashboard_server("GET", "/api/onboarding")
+    assert body["demo_jobs"] == 0

@@ -8,6 +8,8 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PROFILE_PATH = ROOT / "config" / "profile.yaml"
 EXAMPLE_PROFILE_PATH = ROOT / "config" / "profile.example.yaml"
+# Shown when the profile has no name yet. Never the example persona's name.
+PLACEHOLDER_NAME = "Candidate Name"
 
 
 @dataclass
@@ -70,7 +72,7 @@ def _search_rules_from_prefs(prefs: dict) -> SearchRules:
 
 @dataclass
 class CandidateProfile:
-    name: str = "Candidate Name"
+    name: str = PLACEHOLDER_NAME
     tagline: str = ""
     contact: CandidateContact = field(default_factory=CandidateContact)
     career_facts: str = ""
@@ -81,12 +83,17 @@ class CandidateProfile:
     target_roles: list[str] = field(default_factory=list)
     target_locations: list[str] = field(default_factory=list)
     search: SearchRules = field(default_factory=SearchRules)
+    signature: str = ""
 
 
 def load_candidate_profile(path: Path | None = None) -> CandidateProfile:
+    """Load the candidate profile; a missing file gives a blank profile.
+
+    The example profile is documentation only. It is never used as a silent
+    fallback, so its persona can't leak into real CVs and letters. Load it
+    explicitly with ``load_candidate_profile(EXAMPLE_PROFILE_PATH)``.
+    """
     target = path or DEFAULT_PROFILE_PATH
-    if not target.exists():
-        target = EXAMPLE_PROFILE_PATH
     if not target.exists():
         return CandidateProfile()
 
@@ -110,7 +117,7 @@ def load_candidate_profile(path: Path | None = None) -> CandidateProfile:
     )
 
     return CandidateProfile(
-        name=str(cand.get("name") or "Candidate Name").strip(),
+        name=str(cand.get("name") or "").strip() or PLACEHOLDER_NAME,
         tagline=str(cand.get("tagline") or "").strip(),
         contact=contact,
         career_facts=str(cand.get("career_facts") or "").strip(),
@@ -121,6 +128,7 @@ def load_candidate_profile(path: Path | None = None) -> CandidateProfile:
         target_roles=list(target_prefs.get("target_roles") or []),
         target_locations=list(target_prefs.get("target_locations") or []),
         search=_search_rules_from_prefs(target_prefs),
+        signature=str(cand.get("signature") or "").strip(),
     )
 
 
@@ -131,7 +139,7 @@ def load_search_rules(path: Path | None = None) -> SearchRules:
     """Load search rules from the profile, cached on (resolved path, mtime)."""
     target = path or DEFAULT_PROFILE_PATH
     if not target.exists():
-        target = EXAMPLE_PROFILE_PATH
+        return SearchRules()
     try:
         key = (str(target.resolve()), target.stat().st_mtime)
     except OSError:
@@ -145,6 +153,29 @@ def load_search_rules(path: Path | None = None) -> SearchRules:
             cached = SearchRules()
         _RULES_CACHE[key] = cached
     return cached
+
+
+def typst_asset_path(raw: str) -> str | None:
+    """Map a profile asset path to a Typst root-relative path (``/...``), or None.
+
+    Relative paths resolve against the project root. Typst can only read files
+    inside its ``--root``, so anything outside the project, or missing, is skipped.
+    """
+    if not raw:
+        return None
+    candidate = Path(raw).expanduser()
+    if not candidate.is_absolute():
+        candidate = ROOT / candidate
+    try:
+        resolved = candidate.resolve()
+        relative = resolved.relative_to(ROOT.resolve())
+    except (OSError, ValueError):
+        print(f"warning: signature {raw!r} is outside the project folder; leaving it off", file=sys.stderr)
+        return None
+    if not resolved.is_file():
+        print(f"warning: signature file {raw!r} not found; leaving it off", file=sys.stderr)
+        return None
+    return "/" + relative.as_posix()
 
 
 def export_profile_for_typst(profile: CandidateProfile) -> dict:
@@ -168,7 +199,7 @@ def export_profile_for_typst(profile: CandidateProfile) -> dict:
             "url": profile.contact.portfolio_url or f"https://{profile.contact.portfolio}",
         })
 
-    return {
+    exported = {
         "name": profile.name,
         "tagline": profile.tagline,
         "contact": contacts,
@@ -177,3 +208,7 @@ def export_profile_for_typst(profile: CandidateProfile) -> dict:
         "education": profile.education,
         "certifications": profile.certifications,
     }
+    signature = typst_asset_path(profile.signature)
+    if signature:
+        exported["signature"] = signature
+    return exported

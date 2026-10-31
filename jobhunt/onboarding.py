@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
 import tempfile
 from datetime import date
 from pathlib import Path
@@ -10,6 +9,7 @@ from pathlib import Path
 import yaml
 
 from jobhunt import profile as profile_module
+from jobhunt.demo_seed import DEMO_SOURCE
 from jobhunt.integration_settings import effective_firecrawl_key, get_setting, has_setting, set_setting
 from jobhunt.profile import EXAMPLE_PROFILE_PATH
 from jobhunt.style_defaults import default_theme_path
@@ -66,13 +66,70 @@ def _resolve(path: Path | None) -> Path:
     return path if path is not None else profile_module.DEFAULT_PROFILE_PATH
 
 
-def ensure_profile_file(path: Path | None = None, example: Path | None = None) -> bool:
+PROFILE_SKELETON = """\
+# Your candidate profile. The dashboard's setup wizard fills in the basics.
+# Edit this file directly for education, languages, certifications and an
+# optional signature. config/profile.example.yaml shows a filled-in example.
+candidate:
+  name: ""
+  tagline: ""
+  contact:
+    email: ""
+    phone: ""
+    location: ""
+    linkedin: ""
+    linkedin_url: ""
+    portfolio: ""
+    portfolio_url: ""
+  # Verified career history the AI may draw on. Plain text, one fact per line.
+  career_facts: ""
+  skills: []
+  # Each entry is [language, level], e.g. ["English", "Native speaker"].
+  languages: []
+  # Each entry has deg, school and optional notes, e.g.
+  #   - deg: "BSc Business Administration"
+  #     school: "University Name"
+  #     notes: ["Specialization in ..."]
+  education: []
+  certifications: []
+  # Optional signature image for motivation letters: a path inside the project
+  # folder, e.g. config/signature.png. Leave empty for no signature.
+  signature: ""
+
+target_preferences:
+  # Job titles you are aiming for. A term matches when all its words appear in the title.
+  target_roles: []                # e.g. ["marketing manager", "content"]
+  # Roles you would consider but rank lower.
+  adjacent_roles: []              # e.g. ["account manager", "partnerships"]
+  # Title words that always rule a job out.
+  excluded_functions: []          # e.g. ["engineering", "recruiter"]
+  # Skip jobs whose stated experience floor is above this many years (null = no limit).
+  max_years_experience: null      # e.g. 4
+  exclude_senior_titles: false    # true hides senior/director/head-of style titles
+  exclude_internships: false      # true hides internships
+  # Places you accept. Empty means any location.
+  target_locations: []            # e.g. ["Amsterdam", "Netherlands"]
+  # Cities that get a small score boost.
+  preferred_cities: []            # e.g. ["Amsterdam", "Rotterdam"]
+  # Accept fully remote roles regardless of where the company is based.
+  allow_remote: true
+  # Regex patterns in a listing that rule it out (e.g. a language you do not speak).
+  excluded_language_patterns: []  # e.g. ["fluent german", "native german"]
+"""
+
+
+def ensure_profile_file(path: Path | None = None) -> bool:
+    """Create a blank profile skeleton if none exists. Never copies the example persona."""
     target = _resolve(path)
-    source = example if example is not None else EXAMPLE_PROFILE_PATH
-    if target.exists() or not source.exists():
+    if target.exists():
         return False
     target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, target)
+    try:
+        descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    except FileExistsError:
+        return False
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(PROFILE_SKELETON)
     return True
 
 
@@ -168,6 +225,14 @@ def _validate_field(dotted: str, value):
     return value.strip()
 
 
+def _file_mode(path: Path) -> int:
+    """Existing permission bits of ``path``, or 0644 for a new file."""
+    try:
+        return path.stat().st_mode & 0o777
+    except OSError:
+        return 0o644
+
+
 def write_profile_document(payload: dict, path: Path | None = None) -> dict:
     target = _resolve(path)
     if not isinstance(payload, dict):
@@ -189,10 +254,12 @@ def write_profile_document(payload: dict, path: Path | None = None) -> dict:
             node = child
         node[parts[-1]] = value
     target.parent.mkdir(parents=True, exist_ok=True)
+    mode = _file_mode(target)
     descriptor, tmp_name = tempfile.mkstemp(dir=target.parent, prefix=".profile-", suffix=".tmp")
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
             yaml.safe_dump(raw, handle, allow_unicode=True, sort_keys=False, default_flow_style=False)
+        os.chmod(tmp_name, mode)  # mkstemp creates 0600; keep the file readable as before
         os.replace(tmp_name, target)
     except BaseException:
         Path(tmp_name).unlink(missing_ok=True)
@@ -201,9 +268,8 @@ def write_profile_document(payload: dict, path: Path | None = None) -> dict:
 
 
 def _profile_name(path: Path) -> tuple[str, str | None]:
-    source = path if path.exists() else EXAMPLE_PROFILE_PATH
     try:
-        raw = _load_raw(source)
+        raw = _load_raw(path)
     except ProfileError as exc:
         return "", str(exc)
     cand = raw.get("candidate")
@@ -224,13 +290,19 @@ def onboarding_state(conn, profile_path: Path | None = None) -> dict:
         "step": step,
         "checks": {
             "ai": has_setting(conn, "ollama_base_url"),
+            # A real name: non-empty and not the example persona's.
             "profile": bool(name) and name != _example_name(),
             "style": default_theme_path().exists(),
             "chameleon": bool(effective_firecrawl_key(conn)),
             "goal": has_setting(conn, "daily_goal"),
         },
         "profile_error": profile_error,
+        "demo_jobs": _demo_job_count(conn),
     }
+
+
+def _demo_job_count(conn) -> int:
+    return int(conn.execute("SELECT COUNT(*) FROM jobs WHERE source_platform = ?", (DEMO_SOURCE,)).fetchone()[0])
 
 
 def set_onboarding_step(conn, step: str) -> dict:

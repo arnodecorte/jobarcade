@@ -110,10 +110,15 @@ def apply_default_variant(cv: dict, path: Path | None = None) -> dict:
 
 def _write_atomic(path: Path, theme: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        mode = path.stat().st_mode & 0o777
+    except OSError:
+        mode = 0o644
     fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=".default-theme-", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             yaml.safe_dump(theme, handle, sort_keys=False, allow_unicode=True)
+        os.chmod(tmp_name, mode)  # mkstemp creates 0600; keep the file readable
         os.replace(tmp_name, path)
     except BaseException:
         Path(tmp_name).unlink(missing_ok=True)
@@ -150,6 +155,27 @@ def save_default_style(style: dict, path: Path | None = None) -> dict:
     return saved
 
 
+PREVIEW_TIMEOUT_SECONDS = 60
+
+
+def _preview_profile() -> profile_module.CandidateProfile:
+    """The user's profile, or the example persona while no name is filled in yet.
+
+    The example only ever feeds this preview image, so the preview still looks
+    like a CV before setup; real builds never fall back to it.
+    """
+    try:
+        profile = profile_module.load_candidate_profile()
+    except (OSError, yaml.YAMLError, AttributeError, TypeError, ValueError) as exc:
+        raise ValueError(f"Your profile could not be read, so the preview can't be drawn: {exc}") from exc
+    if profile.name and profile.name != profile_module.PLACEHOLDER_NAME:
+        return profile
+    try:
+        return profile_module.load_candidate_profile(profile_module.EXAMPLE_PROFILE_PATH)
+    except (OSError, yaml.YAMLError, AttributeError, TypeError, ValueError):
+        return profile
+
+
 def render_style_preview(style: dict) -> bytes:
     """Return a PNG of page 1 of the reference CV rendered with ``style``."""
     typst = shutil.which("typst")
@@ -164,11 +190,14 @@ def render_style_preview(style: dict) -> bytes:
     try:
         dump = lambda data: yaml.safe_dump(data, sort_keys=False, allow_unicode=True)  # noqa: E731
         (work / "theme.yaml").write_text(dump(theme), encoding="utf-8")
-        cv = yaml.safe_load((ROOT / "Base" / "reference" / "cv-data.yaml").read_text(encoding="utf-8")) or {}
+        try:
+            cv = yaml.safe_load((ROOT / "Base" / "reference" / "cv-data.yaml").read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError) as exc:
+            raise ValueError(f"The reference CV used for the preview could not be read: {exc}") from exc
         cv["variant"] = theme["cv_variant"]
         cv["max_pages"] = max_pages_for_variant(theme["cv_variant"])
         (work / "cv-data.yaml").write_text(dump(cv), encoding="utf-8")
-        profile = profile_module.load_candidate_profile()
+        profile = _preview_profile()
         (work / "profile.yaml").write_text(dump(profile_module.export_profile_for_typst(profile)), encoding="utf-8")
 
         def rel(name: str) -> str:
@@ -184,7 +213,10 @@ def render_style_preview(style: dict) -> bytes:
         ]
         for font_path in font_paths_for_theme(theme):
             cmd.extend(["--font-path", str(font_path)])
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=PREVIEW_TIMEOUT_SECONDS)
+        except subprocess.TimeoutExpired as exc:
+            raise ValueError("Preview timed out") from exc
         if result.returncode != 0 or not out.is_file():
             raise ValueError((result.stderr or "Typst failed to render the preview.").strip()[:800])
         return out.read_bytes()

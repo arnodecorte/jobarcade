@@ -28,8 +28,12 @@
 } else {
   (:)
 }
+#let profile-data = if type(profile-data) == dictionary { profile-data } else { (:) }
 
-#let NAME = profile-data.at("name", default: "Candidate Name")
+#let NAME = {
+  let name = profile-data.at("name", default: none)
+  if name == none { "" } else { name }
+}
 
 #set page(paper: "a4", margin: 2cm, fill: page-bg)
 #set text(font: body-font, size: 10.5pt, weight: body-weight, fill: ink, lang: "en")
@@ -57,11 +61,13 @@ Dear Hiring Manager,
 #v(6pt)
 Kindest regards,
 #v(2pt)
+// Signature only when the profile provides one (candidate.signature, exported
+// as a project-root path like "/config/signature.png"). No default image.
 #let signature-path = profile-data.at("signature", default: none)
-#if signature-path != none {
+#if signature-path != none and signature-path != "" {
   image(signature-path, height: 52pt)
 } else {
-  image(if dark-mode { "assets/signature-white.png" } else { "assets/signature.png" }, height: 52pt)
+  v(10pt)
 }
 #text(size: 10.5pt)[#NAME]
 

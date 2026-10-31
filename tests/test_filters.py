@@ -159,6 +159,17 @@ def test_language_patterns_are_configurable():
     assert assess_job(job, rules=rules).hard_fail_reason == "language_required"
 
 
+def test_language_patterns_tolerate_inline_flags_and_invalid_regex():
+    rules = SearchRules(excluded_language_patterns=(r"(?i)fluent german", r"[unclosed"))
+    job = Job("Acme", "Account Manager", description="Fluent German required", location="Berlin")
+    assert assess_job(job, rules=rules).hard_fail_reason == "language_required"
+    job_unclosed = Job("Acme", "Account Manager", description="Needs [unclosed skill", location="Berlin")
+    assert assess_job(job_unclosed, rules=rules).hard_fail_reason == "language_required"
+    job_ok = Job("Acme", "Account Manager", description="English only", location="Berlin")
+    assert assess_job(job_ok, rules=rules).included is True
+
+
+
 def test_remote_role_allowed_only_when_allow_remote():
     job = Job("Acme", "Account Manager", location="Lisbon", remote_type="Remote")
     assert assess_job(job, rules=SearchRules(accepted_locations=("berlin",))).included is True

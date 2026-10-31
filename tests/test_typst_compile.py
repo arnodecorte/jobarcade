@@ -223,3 +223,95 @@ def test_reference_cv_and_letter_compile():
         assert out_letter_pdf.exists()
     finally:
         shutil.rmtree(test_dir, ignore_errors=True)
+
+
+# Profile-only facts of the example persona (the reference CV body is role content, not profile).
+EXAMPLE_MARKERS = ("Alex Morgan", "alex.morgan", "University of Amsterdam", "Inbound Marketing Certified", "+31 6 12345678")
+
+
+def _compile(root: Path, template: str, data: dict, profile_data: dict, out_name: str, work: Path):
+    data_file = work / f"{out_name}-data.yaml"
+    data_file.write_text(yaml.safe_dump(data), encoding="utf-8")
+    profile_file = work / f"{out_name}-profile.yaml"
+    profile_file.write_text(yaml.safe_dump(profile_data), encoding="utf-8")
+    out_pdf = work / f"{out_name}.pdf"
+    cmd = [
+        "typst", "compile", "--root", str(root), str(root / "Base" / template), str(out_pdf),
+        "--input", f"data=/{data_file.relative_to(root).as_posix()}",
+        "--input", f"profile=/{profile_file.relative_to(root).as_posix()}",
+    ]
+    return subprocess.run(cmd, capture_output=True, text=True), out_pdf
+
+
+@pytest.mark.skipif(not TYPST_AVAILABLE, reason="typst CLI is not installed")
+def test_fresh_profile_with_name_builds_cv_and_letter_without_example_data(tmp_path, monkeypatch):
+    from jobhunt import profile as profile_module
+    from jobhunt.onboarding import ensure_profile_file, write_profile_document
+
+    root = Path(__file__).resolve().parents[1]
+    profile_path = tmp_path / "profile.yaml"
+    monkeypatch.setattr(profile_module, "DEFAULT_PROFILE_PATH", profile_path)
+    ensure_profile_file(profile_path)
+    write_profile_document({"candidate": {"name": "Sam Rivera", "contact": {"email": "sam@example.org"}}}, profile_path)
+    profile = load_candidate_profile()
+    assert profile.education == [] and profile.name == "Sam Rivera"
+    profile_data = export_profile_for_typst(profile)
+    assert "signature" not in profile_data
+    for marker in EXAMPLE_MARKERS:
+        assert marker not in yaml.safe_dump(profile_data)
+
+    cv_data = yaml.safe_load((root / "Base" / "reference" / "cv-data.yaml").read_text(encoding="utf-8"))
+    cv_data.update(variant="grotesk_one_page", max_pages=1)
+    letter_data = yaml.safe_load((root / "Base" / "reference" / "letter-data.yaml").read_text(encoding="utf-8"))
+    work = root / ".tmp_test_typst_blank"
+    work.mkdir(exist_ok=True)
+    try:
+        res, cv_pdf = _compile(root, "cv.typ", cv_data, profile_data, "cv", work)
+        assert res.returncode == 0, res.stderr
+        res, letter_pdf = _compile(root, "letter.typ", letter_data, profile_data, "letter", work)
+        assert res.returncode == 0, res.stderr
+        pypdf = pytest.importorskip("pypdf")
+        for pdf in (cv_pdf, letter_pdf):
+            text = "".join(page.extract_text() for page in pypdf.PdfReader(str(pdf)).pages)
+            assert "Sam Rivera" in text
+            for marker in EXAMPLE_MARKERS:
+                assert marker not in text
+            assert "Education" not in text and "Certifications" not in text
+        # The letter embeds no signature image when the profile sets none.
+        assert not pypdf.PdfReader(str(letter_pdf)).pages[0].images
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@pytest.mark.skipif(not TYPST_AVAILABLE, reason="typst CLI is not installed")
+@pytest.mark.parametrize("profile_data", [
+    {"name": "Sam Rivera", "contact": [], "skills": [], "education": []},
+    {"name": "", "contact": []},
+    {},
+])
+def test_letter_compiles_without_signature(profile_data):
+    root = Path(__file__).resolve().parents[1]
+    letter_data = yaml.safe_load((root / "Base" / "reference" / "letter-data.yaml").read_text(encoding="utf-8"))
+    work = root / ".tmp_test_typst_letter"
+    work.mkdir(exist_ok=True)
+    try:
+        res, out_pdf = _compile(root, "letter.typ", letter_data, profile_data, "letter", work)
+        assert res.returncode == 0, res.stderr
+        assert out_pdf.exists()
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+@pytest.mark.skipif(not TYPST_AVAILABLE, reason="typst CLI is not installed")
+def test_letter_renders_profile_signature_when_set():
+    root = Path(__file__).resolve().parents[1]
+    letter_data = yaml.safe_load((root / "Base" / "reference" / "letter-data.yaml").read_text(encoding="utf-8"))
+    work = root / ".tmp_test_typst_sig"
+    work.mkdir(exist_ok=True)
+    try:
+        res, out_pdf = _compile(root, "letter.typ", letter_data, {"name": "Sam", "signature": "/Base/assets/signature.png"}, "letter", work)
+        assert res.returncode == 0, res.stderr
+        pypdf = pytest.importorskip("pypdf")
+        assert pypdf.PdfReader(str(out_pdf)).pages[0].images
+    finally:
+        shutil.rmtree(work, ignore_errors=True)

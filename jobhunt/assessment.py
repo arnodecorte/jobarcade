@@ -134,7 +134,18 @@ def language_ok(text: str, rules: SearchRules | None = None) -> bool:
         except re.error:
             pattern = re.escape(pattern)
         parts.append(pattern)
-    return not re.search(r"\b(?:" + "|".join(parts) + r")\b", text, re.I)
+    try:
+        return not re.search(r"\b(?:" + "|".join(parts) + r")\b", text, re.I)
+    except re.error:
+        for raw in rules.excluded_language_patterns:
+            for candidate in (r"\b(?:" + raw + r")\b", raw, re.escape(raw)):
+                try:
+                    if re.search(candidate, text, re.I):
+                        return False
+                    break
+                except re.error:
+                    continue
+        return True
 
 
 def experience_floor(text: str) -> int | None:

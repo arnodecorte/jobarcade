@@ -22,6 +22,14 @@ from jobhunt.database import init_db, upsert_jobs
 from jobhunt.models import Company, Job
 
 
+@pytest.fixture(autouse=True)
+def _isolated_dashboard_db(tmp_path, monkeypatch):
+    """Keep draft-pack tests from opening the real ROOT/data/jobs.sqlite."""
+    monkeypatch.setattr(dashboard, "DB_PATH", tmp_path / "jobs.sqlite")
+    monkeypatch.setenv("JOBHUNT_SECRET_KEY_PATH", str(tmp_path / "config" / ".jobhunt-secrets.key"))
+
+
+
 def valid_payload():
     return {
         "cv": {

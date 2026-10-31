@@ -35,16 +35,16 @@
 } else {
   (:)
 }
+#let profile-data = if type(profile-data) == dictionary { profile-data } else { (:) }
 
-#let NAME = profile-data.at("name", default: "Candidate Name")
-#let CONTACT = profile-data.at("contact", default: (
-  (label: "Email", value: "candidate@example.com"),
-  (label: "Location", value: "Amsterdam, Netherlands"),
-))
-#let SKILLS = profile-data.at("skills", default: ())
-#let LANGUAGES = profile-data.at("languages", default: ())
-#let EDUCATION = profile-data.at("education", default: ())
-#let CERTS = profile-data.at("certifications", default: ())
+// Missing or null profile keys render as empty; empty sections are hidden.
+#let or-empty(value, empty) = if value == none { empty } else { value }
+#let NAME = or-empty(profile-data.at("name", default: none), "")
+#let CONTACT = or-empty(profile-data.at("contact", default: none), ())
+#let SKILLS = or-empty(profile-data.at("skills", default: none), ())
+#let LANGUAGES = or-empty(profile-data.at("languages", default: none), ())
+#let EDUCATION = or-empty(profile-data.at("education", default: none), ())
+#let CERTS = or-empty(profile-data.at("certifications", default: none), ())
 
 // ---- Page setup -------------------------------------------------------------
 #set page(paper: "a4", margin: page-margin, fill: page-bg,

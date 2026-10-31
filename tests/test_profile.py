@@ -146,3 +146,31 @@ def test_target_preferences_as_list_is_tolerated(tmp_path: Path):
     cfg.write_text("candidate: [a, b]\ntarget_preferences: [x, y]\n", encoding="utf-8")
     assert load_search_rules(cfg) == SearchRules()
     assert load_candidate_profile(cfg).name == "Candidate Name"
+
+
+def test_missing_profile_is_blank_not_the_example(tmp_path: Path):
+    prof = load_candidate_profile(tmp_path / "missing.yaml")
+    assert prof.name == "Candidate Name"
+    assert prof.career_facts == "" and prof.skills == [] and prof.education == []
+    assert prof.contact.email == ""
+
+
+def test_export_profile_has_no_signature_unless_set(tmp_path: Path, capsys):
+    from jobhunt.profile import ROOT
+
+    assert "signature" not in export_profile_for_typst(CandidateProfile(name="A"))
+    assert export_profile_for_typst(CandidateProfile(name="A", signature="Base/assets/signature.png"))["signature"] == "/Base/assets/signature.png"
+    absolute = str(ROOT / "Base" / "assets" / "signature.png")
+    assert export_profile_for_typst(CandidateProfile(name="A", signature=absolute))["signature"] == "/Base/assets/signature.png"
+    # Missing files and paths outside the project are left off with a warning.
+    assert "signature" not in export_profile_for_typst(CandidateProfile(name="A", signature="config/nope.png"))
+    outside = tmp_path / "sig.png"
+    outside.write_bytes(b"x")
+    assert "signature" not in export_profile_for_typst(CandidateProfile(name="A", signature=str(outside)))
+    assert "warning" in capsys.readouterr().err
+
+
+def test_signature_loaded_from_profile(tmp_path: Path):
+    cfg = tmp_path / "profile.yaml"
+    cfg.write_text("candidate:\n  name: A\n  signature: config/signature.png\n", encoding="utf-8")
+    assert load_candidate_profile(cfg).signature == "config/signature.png"

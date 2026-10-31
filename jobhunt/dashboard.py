@@ -2120,7 +2120,7 @@ def create_manual_job(conn: sqlite3.Connection, payload: dict) -> dict:
     )
     apply_assessment(job)  # same plausibility/fit-band scoring scraped jobs get
     if job.fit_band == "excluded":
-        # She chose to track this; don't show a hard-fail label for a deliberate
+        # Deliberately tracked role; don't show a hard-fail label for a manual
         # entry just because it lacks the description text the filters expect.
         job.fit_band = "stretch"
         job.score = max(job.score, 40)
