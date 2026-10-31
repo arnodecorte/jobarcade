@@ -61,6 +61,13 @@ from jobhunt.integration_settings import (
     test_ollama_settings,
 )
 from jobhunt.job_scrape import scrape_job_listing
+from jobhunt.style_defaults import (
+    CV_VARIANTS,
+    STYLE_FONTS,
+    read_default_style,
+    render_style_preview,
+    save_default_style,
+)
 from jobhunt.models import Job
 from jobhunt import profile as profile_module
 from jobhunt.onboarding import (
@@ -136,7 +143,6 @@ GHOSTED_DAYS = 45
 FOLLOW_UP_DAYS = 14
 
 VALID_ENGINES = ("ollama", "gemini_cli", "openai_cli", "manual")
-CV_VARIANTS = ("grotesk_one_page", "compact_one_page", "classic_two_page", "enriched_two_page")
 ROLE_FOCUSES = ("marketing", "campaign", "content", "brand", "community", "growth", "operations")
 MARKETING_ROLE_FOCUSES = {"marketing", "campaign", "content", "brand", "community"}
 CV_ALLOWED_KEYS = {
@@ -1156,7 +1162,13 @@ def generate_draft_with_ollama(
     raw = data.get("response")
     if not isinstance(raw, str) or not raw.strip():
         raise ValueError("Ollama returned an empty draft.")
-    return validate_draft_payload(_extract_json_object(raw))
+    parsed = _extract_json_object(raw)
+    style = read_default_style()
+    if style["configured"] and isinstance(parsed, dict):
+        cv = parsed.get("cv", parsed.get("cv_data"))
+        if isinstance(cv, dict) and not cv.get("variant"):
+            cv["variant"] = style["cv_variant"]
+    return validate_draft_payload(parsed)
 
 
 def _refine_prompt(
@@ -2179,6 +2191,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def _send_error_json(self, message: str, status: int = HTTPStatus.BAD_REQUEST) -> None:
         self._send_json({"ok": False, "error": message}, status)
 
+    def _send_png(self, body: bytes) -> None:
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "image/png")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
     def _blocked_if_retired(self) -> bool:
         """Reject any write/action request while the dashboard is retired (read-only archive)."""
         if not RETIRED:
@@ -2202,6 +2222,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/goals":
                 with db_session() as conn:
                     self._send_json(get_goals(conn))
+                return
+            if parsed.path == "/api/style":
+                self._send_json({**read_default_style(), "variants": list(CV_VARIANTS), "fonts": list(STYLE_FONTS)})
                 return
             if parsed.path == "/api/summary":
                 with db_session() as conn:
@@ -2307,6 +2330,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         try:
             payload = _read_json(self)
+            if parsed.path == "/api/style/preview":
+                self._send_png(render_style_preview(payload))
+                return
             if parsed.path == "/api/onboarding/step":
                 with db_session() as conn:
                     self._send_json(set_onboarding_step(conn, str(payload.get("step") or "")))
@@ -2547,6 +2573,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/goals":
                 with db_session() as conn:
                     self._send_json(save_goals(conn, payload))
+                return
+            if parsed.path == "/api/style":
+                self._send_json(save_default_style(payload))
                 return
             draft_match = re.match(r"^/api/applications/([^/]+)/draft$", parsed.path)
             if draft_match:

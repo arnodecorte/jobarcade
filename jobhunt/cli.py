@@ -213,6 +213,32 @@ def cmd_dashboard(args: argparse.Namespace) -> int:
     return 0
 
 
+def _default_theme_input(root, font_paths):
+    """Fall back to the user's default style theme when no Chameleon theme applies."""
+    from jobhunt.font_theme import font_paths_for_theme
+    from jobhunt.style_defaults import default_theme_path
+
+    path = default_theme_path()
+    if not path.is_file():
+        return None, font_paths
+    try:
+        default_theme = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        print("WARNING: default-theme.yaml is unreadable; using the base theme.", file=sys.stderr)
+        return None, font_paths
+    if not isinstance(default_theme, dict) or not default_theme.get("enabled", True):
+        return None, font_paths
+    root = Path(root).resolve()
+    try:
+        rel = path.resolve().relative_to(root)
+    except ValueError:
+        copy = root / "data" / ".preview" / "default-theme.yaml"
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, copy)
+        rel = copy.relative_to(root)
+    return "/" + rel.as_posix(), font_paths_for_theme(default_theme)
+
+
 def cmd_build(args: argparse.Namespace) -> int:
     from jobhunt.config import ROOT
     from jobhunt.brand_theme import read_theme
@@ -245,6 +271,8 @@ def cmd_build(args: argparse.Namespace) -> int:
     font_paths = font_paths_for_theme(theme)
     if theme and theme.get("enabled") and theme.get("fallback"):
         print("WARNING: brand-theme.yaml is enabled but invalid or low-confidence; using the base theme.", file=sys.stderr)
+    if theme_input is None:
+        theme_input, font_paths = _default_theme_input(ROOT, font_paths)
 
     from jobhunt.profile import export_profile_for_typst, load_candidate_profile
     profile = load_candidate_profile()

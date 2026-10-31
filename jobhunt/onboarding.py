@@ -12,6 +12,7 @@ import yaml
 from jobhunt import profile as profile_module
 from jobhunt.integration_settings import effective_firecrawl_key, get_setting, has_setting, set_setting
 from jobhunt.profile import EXAMPLE_PROFILE_PATH
+from jobhunt.style_defaults import default_theme_path
 
 ONBOARDING_STEPS = ("welcome", "ai", "profile", "style", "chameleon", "goal")
 
@@ -224,7 +225,7 @@ def onboarding_state(conn, profile_path: Path | None = None) -> dict:
         "checks": {
             "ai": has_setting(conn, "ollama_base_url"),
             "profile": bool(name) and name != _example_name(),
-            "style": (path.parent / "default-theme.yaml").exists(),
+            "style": default_theme_path().exists(),
             "chameleon": bool(effective_firecrawl_key(conn)),
             "goal": has_setting(conn, "daily_goal"),
         },

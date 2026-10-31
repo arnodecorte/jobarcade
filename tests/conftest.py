@@ -42,10 +42,12 @@ def dashboard_server(tmp_path, monkeypatch):
             base + path, data=data, method=method, headers={"Content-Type": "application/json"}
         )
         try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                status, text = resp.status, resp.read().decode()
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                status, raw, ctype = resp.status, resp.read(), resp.headers.get("Content-Type", "")
         except urllib.error.HTTPError as exc:
-            status, text = exc.code, exc.read().decode()
+            status, raw, ctype = exc.code, exc.read(), exc.headers.get("Content-Type", "")
+        request.last_bytes, request.last_content_type = raw, ctype
+        text = raw.decode("utf-8", errors="replace")
         try:
             parsed = json.loads(text) if text else None
         except ValueError:

@@ -210,3 +210,42 @@ fallback: false
         font_path_count = sum(1 for arg in call if arg == "--font-path")
         assert font_path_count == 1
         assert str(font_dir) in call
+
+
+def _build_setup(tmp_path, monkeypatch, brand_theme=None):
+    import yaml
+
+    app_dir = tmp_path / "Applications" / "Example-Role"
+    app_dir.mkdir(parents=True)
+    (app_dir / "cv-data.yaml").write_text("title: Example\n", encoding="utf-8")
+    (app_dir / "letter-data.yaml").write_text("subtitle: Example\n", encoding="utf-8")
+    if brand_theme:
+        (app_dir / "brand-theme.yaml").write_text(brand_theme, encoding="utf-8")
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / "default-theme.yaml").write_text(
+        yaml.safe_dump({"enabled": True, "accent": "#1F4E79", "cv_variant": "classic_two_page"}), encoding="utf-8"
+    )
+    monkeypatch.setattr("jobhunt.config.ROOT", tmp_path)
+    monkeypatch.setattr("jobhunt.profile.DEFAULT_PROFILE_PATH", config / "profile.yaml")
+    monkeypatch.setattr(cli.shutil, "which", lambda name: "typst")
+    calls = []
+    monkeypatch.setattr(cli.subprocess, "run", lambda cmd: calls.append(cmd) or subprocess.CompletedProcess(cmd, 0))
+    return calls
+
+
+def test_build_uses_default_theme_when_no_brand_theme(tmp_path, monkeypatch):
+    calls = _build_setup(tmp_path, monkeypatch)
+    assert cli.cmd_build(argparse.Namespace(app="Example-Role")) == 0
+    assert all("theme=/config/default-theme.yaml" in call for call in calls)
+
+
+def test_chameleon_theme_overrides_default(tmp_path, monkeypatch):
+    calls = _build_setup(
+        tmp_path,
+        monkeypatch,
+        "enabled: true\naccent: '#0057FF'\nconfidence: 0.8\nfallback: false\n",
+    )
+    assert cli.cmd_build(argparse.Namespace(app="Example-Role")) == 0
+    assert all("theme=/Applications/Example-Role/brand-theme.yaml" in call for call in calls)
+    assert all("theme=/config/default-theme.yaml" not in call for call in calls)
