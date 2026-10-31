@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+import sys
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -89,10 +90,14 @@ def load_candidate_profile(path: Path | None = None) -> CandidateProfile:
     if not target.exists():
         return CandidateProfile()
 
-    raw = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
-    cand = raw.get("candidate", {})
-    contact_data = cand.get("contact", {})
-    target_prefs = raw.get("target_preferences") or {}
+    raw = yaml.safe_load(target.read_text(encoding="utf-8"))
+    raw = raw if isinstance(raw, dict) else {}
+    cand = raw.get("candidate")
+    cand = cand if isinstance(cand, dict) else {}
+    contact_data = cand.get("contact")
+    contact_data = contact_data if isinstance(contact_data, dict) else {}
+    target_prefs = raw.get("target_preferences")
+    target_prefs = target_prefs if isinstance(target_prefs, dict) else {}
 
     contact = CandidateContact(
         email=str(contact_data.get("email") or "").strip(),
@@ -133,7 +138,11 @@ def load_search_rules(path: Path | None = None) -> SearchRules:
         return SearchRules()
     cached = _RULES_CACHE.get(key)
     if cached is None:
-        cached = load_candidate_profile(target).search
+        try:
+            cached = load_candidate_profile(target).search
+        except (yaml.YAMLError, AttributeError, TypeError, ValueError, OSError) as exc:
+            print(f"warning: could not read search rules from {target}: {exc}; using permissive defaults", file=sys.stderr)
+            cached = SearchRules()
         _RULES_CACHE[key] = cached
     return cached
 

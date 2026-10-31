@@ -128,3 +128,21 @@ def test_search_rules_cache_refreshes_on_change(tmp_path: Path):
     st = cfg.stat()
     os.utime(cfg, (st.st_atime, st.st_mtime + 5))
     assert load_search_rules(cfg).target_roles == ("B",)
+
+
+def test_malformed_yaml_gives_permissive_rules_and_assess_does_not_raise(tmp_path: Path, capsys):
+    from jobhunt.assessment import assess_job
+    from jobhunt.models import Job
+
+    cfg = tmp_path / "profile.yaml"
+    cfg.write_text("target_preferences: [unclosed\n  : : bad", encoding="utf-8")
+    assert load_search_rules(cfg) == SearchRules()
+    assert "warning" in capsys.readouterr().err
+    assert assess_job(Job("Acme", "Data Analyst"), rules=load_search_rules(cfg)).included is True
+
+
+def test_target_preferences_as_list_is_tolerated(tmp_path: Path):
+    cfg = tmp_path / "profile.yaml"
+    cfg.write_text("candidate: [a, b]\ntarget_preferences: [x, y]\n", encoding="utf-8")
+    assert load_search_rules(cfg) == SearchRules()
+    assert load_candidate_profile(cfg).name == "Candidate Name"
