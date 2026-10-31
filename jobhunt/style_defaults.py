@@ -92,6 +92,22 @@ def build_default_theme(style: dict) -> dict:
     return theme
 
 
+def max_pages_for_variant(variant: str) -> int:
+    return 1 if variant in ("grotesk_one_page", "compact_one_page") else 2
+
+
+def apply_default_variant(cv: dict, path: Path | None = None) -> dict:
+    """Force the configured default variant (and matching max_pages) onto a CV dict.
+
+    No-op when no default style has been configured.
+    """
+    style = read_default_style(path)
+    if style["configured"] and isinstance(cv, dict):
+        cv["variant"] = style["cv_variant"]
+        cv["max_pages"] = max_pages_for_variant(style["cv_variant"])
+    return cv
+
+
 def _write_atomic(path: Path, theme: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=".default-theme-", suffix=".tmp")
@@ -150,7 +166,7 @@ def render_style_preview(style: dict) -> bytes:
         (work / "theme.yaml").write_text(dump(theme), encoding="utf-8")
         cv = yaml.safe_load((ROOT / "Base" / "reference" / "cv-data.yaml").read_text(encoding="utf-8")) or {}
         cv["variant"] = theme["cv_variant"]
-        cv["max_pages"] = 1 if theme["cv_variant"] in ("grotesk_one_page", "compact_one_page") else 2
+        cv["max_pages"] = max_pages_for_variant(theme["cv_variant"])
         (work / "cv-data.yaml").write_text(dump(cv), encoding="utf-8")
         profile = profile_module.load_candidate_profile()
         (work / "profile.yaml").write_text(dump(profile_module.export_profile_for_typst(profile)), encoding="utf-8")

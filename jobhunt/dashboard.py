@@ -64,6 +64,7 @@ from jobhunt.job_scrape import scrape_job_listing
 from jobhunt.style_defaults import (
     CV_VARIANTS,
     STYLE_FONTS,
+    apply_default_variant,
     read_default_style,
     render_style_preview,
     save_default_style,
@@ -1163,11 +1164,9 @@ def generate_draft_with_ollama(
     if not isinstance(raw, str) or not raw.strip():
         raise ValueError("Ollama returned an empty draft.")
     parsed = _extract_json_object(raw)
-    style = read_default_style()
-    if style["configured"] and isinstance(parsed, dict):
-        cv = parsed.get("cv", parsed.get("cv_data"))
-        if isinstance(cv, dict) and not cv.get("variant"):
-            cv["variant"] = style["cv_variant"]
+    if isinstance(parsed, dict):
+        # A configured default style wins over whatever variant the model emitted.
+        apply_default_variant(parsed.get("cv", parsed.get("cv_data")))
     return validate_draft_payload(parsed)
 
 

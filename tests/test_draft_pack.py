@@ -692,3 +692,48 @@ def test_build_application_invokes_cli(tmp_path, monkeypatch):
     assert result["ok"] is True
     assert calls
     assert calls[0][:5] == [sys.executable, "-m", "jobhunt", "build", "--app"]
+
+
+def _stub_ollama(monkeypatch, variant="grotesk_one_page"):
+    import json
+
+    payload = valid_payload()
+    payload["cv"]["variant"] = variant
+    payload["cv"]["max_pages"] = 1 if variant == "grotesk_one_page" else 2
+    monkeypatch.setattr(dashboard, "_ollama_await_ready", lambda **k: True)
+    monkeypatch.setattr(dashboard, "_ollama_runtime", lambda function="draft": ("http://x", "m", {}))
+    monkeypatch.setattr(dashboard, "_ollama_post", lambda *a, **k: {"response": json.dumps(payload)})
+
+
+def _draft_for(tmp_path, monkeypatch):
+    import yaml
+
+    conn = init_db(tmp_path / "jobs.sqlite")
+    upsert_jobs(conn, [Job(company="Acme", title="Growth Lead", location="Amsterdam", apply_url="https://example.com/j")])
+    job_id = conn.execute("SELECT id FROM jobs").fetchone()["id"]
+    apps = tmp_path / "Applications"
+    monkeypatch.setattr(dashboard, "APPLICATIONS_DIR", apps)
+    result = create_draft_pack(conn, job_id)
+    return yaml.safe_load((apps / result["folder_name"] / "cv-data.yaml").read_text(encoding="utf-8"))
+
+
+def test_configured_default_style_overrides_model_variant(tmp_path, monkeypatch):
+    from jobhunt import profile as profile_module
+    from jobhunt.style_defaults import save_default_style
+
+    monkeypatch.setattr(profile_module, "DEFAULT_PROFILE_PATH", tmp_path / "profile.yaml")
+    save_default_style({"cv_variant": "classic_two_page", "accent": "#1F4E79"})
+    _stub_ollama(monkeypatch, "grotesk_one_page")
+    cv = _draft_for(tmp_path, monkeypatch)
+    assert cv["variant"] == "classic_two_page"
+    assert cv["max_pages"] == 2
+
+
+def test_unconfigured_default_style_keeps_model_variant(tmp_path, monkeypatch):
+    from jobhunt import profile as profile_module
+
+    monkeypatch.setattr(profile_module, "DEFAULT_PROFILE_PATH", tmp_path / "profile.yaml")
+    _stub_ollama(monkeypatch, "grotesk_one_page")
+    cv = _draft_for(tmp_path, monkeypatch)
+    assert cv["variant"] == "grotesk_one_page"
+    assert cv["max_pages"] == 1
