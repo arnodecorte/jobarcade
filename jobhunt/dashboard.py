@@ -50,6 +50,8 @@ from jobhunt.integration_settings import (
     clear_gmail_settings,
     integration_status,
     save_gmail_settings,
+    effective_ollama_settings,
+    ollama_headers,
     save_ollama_settings,
     test_ollama_settings,
 )
@@ -60,8 +62,6 @@ from jobhunt.profile import CandidateProfile, export_profile_for_typst, load_can
 STATIC_DIR = ROOT / "dashboard" / "static"
 APPLICATIONS_DIR = ROOT / "Applications"
 CANDIDATE_NAME = load_candidate_profile().name
-OLLAMA_URL = os.environ.get("JOBHUNT_OLLAMA_URL", "http://host.docker.internal:11434")
-OLLAMA_MODEL = os.environ.get("JOBHUNT_OLLAMA_MODEL", "qwen2.5:7b")
 
 # The job hunt is over: scraping, LLM drafting and all other live actions are
 # paused. Set to keep the dashboard itself up as a read-only browsable archive.
@@ -1018,13 +1018,24 @@ STYLE TARGETS:
 """.strip()
 
 
-def _ollama_post(payload: dict, timeout: int = 300) -> dict:
+def _ollama_runtime(function: str) -> tuple[str, str, dict[str, str]]:
+    """Resolve (base_url, model, headers) for an Ollama function at call time."""
+    with db_session() as conn:
+        settings = effective_ollama_settings(conn)
+    return (
+        settings["base_url"].rstrip("/"),
+        settings["models"].get(function) or settings["model"],
+        ollama_headers(settings),
+    )
+
+
+def _ollama_post(payload: dict, timeout: int = 300, function: str = "draft") -> dict:
     """POST to Ollama /api/generate with up to 3 retries on connection errors."""
-    url = f"{OLLAMA_URL.rstrip('/')}/api/generate"
+    base_url, _model, headers = _ollama_runtime(function)
     request = Request(
-        url,
+        f"{base_url}/api/generate",
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers=headers,
     )
     last_exc: Exception | None = None
     for attempt in range(6):
@@ -1041,13 +1052,14 @@ def _ollama_post(payload: dict, timeout: int = 300) -> dict:
     raise ValueError(f"Ollama unavailable after 6 attempts: {last_exc}") from last_exc
 
 
-def _ollama_await_ready(max_wait: int = 120) -> bool:
+def _ollama_await_ready(max_wait: int = 120, function: str = "draft") -> bool:
     """Poll /api/tags until Ollama accepts connections or max_wait seconds pass."""
+    base_url, _model, headers = _ollama_runtime(function)
     deadline = time.monotonic() + max_wait
     probe = 0
     while time.monotonic() < deadline:
         try:
-            with urlopen(f"{OLLAMA_URL.rstrip('/')}/api/tags", timeout=5) as resp:
+            with urlopen(Request(f"{base_url}/api/tags", headers=headers), timeout=5) as resp:
                 resp.read()
             if probe:
                 print(f"[dashboard] Ollama ready after {probe} poll(s).")
@@ -1062,50 +1074,53 @@ def _ollama_await_ready(max_wait: int = 120) -> bool:
 def _ollama_warmup_background() -> None:
     """Load the model into Ollama memory on demand. Runs in a daemon thread; failures are non-fatal."""
     try:
+        base_url, model, headers = _ollama_runtime("draft")
         payload = {
-            "model": OLLAMA_MODEL,
+            "model": model,
             "prompt": "",
             "stream": False,
             "keep_alive": "10m",
             "options": {"num_predict": 0},
         }
-        url = f"{OLLAMA_URL.rstrip('/')}/api/generate"
         request = Request(
-            url,
+            f"{base_url}/api/generate",
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=headers,
         )
         with urlopen(request, timeout=120) as resp:
             resp.read()
-        print(f"[dashboard] Ollama model '{OLLAMA_MODEL}' warmed up and will stay loaded for 24h.")
+        print(f"[dashboard] Ollama model '{model}' warmed up and will stay loaded for 24h.")
     except Exception as exc:
         print(f"[dashboard] Ollama warmup failed (non-fatal): {exc}")
 
 
 def _ollama_status() -> dict:
+    model = ""
     try:
-        with urlopen(f"{OLLAMA_URL.rstrip('/')}/api/tags", timeout=5) as resp:
+        base_url, model, headers = _ollama_runtime("draft")
+        with urlopen(Request(f"{base_url}/api/tags", headers=headers), timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
         model_names = {(m.get("name") or m.get("model") or "") for m in data.get("models", [])}
-        model_present = any(OLLAMA_MODEL in name for name in model_names)
-        return {"available": True, "model": OLLAMA_MODEL, "model_present": model_present}
+        model_present = any(model in name for name in model_names)
+        return {"available": True, "model": model, "model_present": model_present}
     except Exception as exc:
-        return {"available": False, "model": OLLAMA_MODEL, "error": str(exc)}
+        return {"available": False, "model": model, "error": str(exc)}
 
 
 def generate_draft_with_ollama(
     row: sqlite3.Row | dict, listing: str, custom_instructions: str = "", profile: CandidateProfile | None = None
 ) -> tuple[dict, dict, list[str]]:
-    if not _ollama_await_ready():
+    if not _ollama_await_ready(function="draft"):
         raise ValueError("Ollama unavailable after 120s — model may still be loading. Retry in a moment.")
+    _url, model, _headers = _ollama_runtime("draft")
     payload = {
-        "model": OLLAMA_MODEL,
+        "model": model,
         "prompt": _draft_prompt(row, listing, custom_instructions, profile=profile),
         "stream": False,
         "options": {"temperature": 0.25, "num_ctx": 12000},
     }
     try:
-        data = _ollama_post(payload, timeout=300)
+        data = _ollama_post(payload, timeout=300, function="draft")
     except ValueError:
         raise
     except Exception as exc:
@@ -1169,8 +1184,9 @@ CANDIDATE FACTS (you may restore dropped roles/bullets from here; never go beyon
 def _refine_draft_with_ollama(
     current_draft_payload: dict, listing: str, instructions: str, profile: CandidateProfile | None = None
 ) -> tuple[dict, dict, list[str]]:
-    if not _ollama_await_ready():
+    if not _ollama_await_ready(function="refine"):
         raise ValueError("Ollama unavailable after 120s — model may still be loading. Retry in a moment.")
+    _url, model, _headers = _ollama_runtime("refine")
     cv_data, letter_data, _ = validate_draft_payload(current_draft_payload)
     current_yaml = (
         "CV:\n"
@@ -1179,13 +1195,13 @@ def _refine_draft_with_ollama(
         + yaml.safe_dump(letter_data, sort_keys=False, allow_unicode=True, width=110)
     )
     payload = {
-        "model": OLLAMA_MODEL,
+        "model": model,
         "prompt": _refine_prompt(current_yaml, listing, instructions, profile=profile),
         "stream": False,
         "options": {"temperature": 0.25, "num_ctx": 12000},
     }
     try:
-        data = _ollama_post(payload, timeout=300)
+        data = _ollama_post(payload, timeout=300, function="refine")
     except ValueError:
         raise
     except Exception as exc:
@@ -1216,8 +1232,10 @@ def reprompt_draft(
         if not row:
             raise ValueError("job_id is required for fresh mode (could not find job row).")
         cv_data, letter_data, warnings = generate_draft_with_ollama(row, listing, instructions)
+        used_model = _ollama_runtime("draft")[1]
     else:
         cv_data, letter_data, warnings = _refine_draft_with_ollama(current_draft_payload, listing, instructions)
+        used_model = _ollama_runtime("refine")[1]
 
     _write_yaml(folder / "cv-data.yaml", cv_data, f"# Draft CV for: {folder_name}")
     _write_yaml(folder / "letter-data.yaml", letter_data, f"# Draft motivation letter for: {folder_name}")
@@ -1225,7 +1243,7 @@ def reprompt_draft(
         folder,
         {
             "origin": "ollama",
-            "model": OLLAMA_MODEL,
+            "model": used_model,
             "state": "draft_generated",
             "updated_at": _now_iso(),
             "custom_instructions": instructions.strip(),
@@ -1618,6 +1636,7 @@ def create_draft_pack(conn: sqlite3.Connection, job_id: int, custom_instructions
     listing = _job_listing_text(row)
     instructions = custom_instructions.strip()
     cv_data, letter_data, warnings = generate_draft_with_ollama(row, listing, instructions)
+    used_model = _ollama_runtime("draft")[1]
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "job-listing.md").write_text(listing, encoding="utf-8")
     _write_yaml(folder / "cv-data.yaml", cv_data, f"# Draft CV for: {row['company']} - {row['title']}")
@@ -1626,7 +1645,7 @@ def create_draft_pack(conn: sqlite3.Connection, job_id: int, custom_instructions
         folder,
         {
             "origin": "ollama",
-            "model": OLLAMA_MODEL,
+            "model": used_model,
             "state": "draft_generated",
             "review_label": "Draft pack ready for review",
             "generated_at": _now_iso(),
@@ -2288,7 +2307,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/ollama/warmup":
                 threading.Thread(target=_ollama_warmup_background, daemon=True).start()
-                self._send_json({"ok": True, "model": OLLAMA_MODEL, "status": "warming"})
+                self._send_json({"ok": True, "model": _ollama_runtime("draft")[1], "status": "warming"})
                 return
             if parsed.path == "/api/gmail/oauth/start":
                 with db_session() as conn:

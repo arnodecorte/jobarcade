@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import stat
 
+import httpx
 import pytest
 from cryptography.fernet import Fernet
 
@@ -11,10 +12,13 @@ from jobhunt.integration_settings import (
     clear_gmail_settings,
     decrypt_setting,
     effective_gmail_settings,
+    effective_ollama_settings,
     integration_status,
     load_or_create_master_key,
+    ollama_headers,
     save_gmail_settings,
     save_ollama_settings,
+    test_ollama_settings as run_ollama_test,
     validate_ollama_url,
     validate_redirect_uri,
 )
@@ -31,6 +35,9 @@ def vault(tmp_path, monkeypatch):
         "GMAIL_TOKEN_ENCRYPTION_KEY",
         "OLLAMA_BASE_URL",
         "OLLAMA_MODEL",
+        "JOBHUNT_OLLAMA_URL",
+        "JOBHUNT_OLLAMA_MODEL",
+        "JOBHUNT_OLLAMA_API_KEY",
     ):
         monkeypatch.delenv(name, raising=False)
     return init_db(tmp_path / "jobs.sqlite"), key_path
@@ -152,3 +159,64 @@ def test_localhost_http_callback_remains_supported():
 def test_ollama_url_rejects_embedded_credentials():
     with pytest.raises(ValueError):
         validate_ollama_url("http://user:password@ollama:11434")
+
+
+def test_per_function_model_falls_back_to_default(vault):
+    conn, _ = vault
+    save_ollama_settings(conn, {"base_url": "http://ollama:11434", "model": "m1", "models": {"refine": "m2"}})
+    s = effective_ollama_settings(conn)
+    assert s["models"] == {"draft": "m1", "refine": "m2", "classify": "m1"}
+
+
+def test_unknown_function_rejected(vault):
+    conn, _ = vault
+    with pytest.raises(ValueError):
+        save_ollama_settings(conn, {"base_url": "http://o:1", "model": "m", "models": {"bogus": "x"}})
+
+
+def test_api_key_encrypted_and_kept_when_blank(vault):
+    conn, _ = vault
+    save_ollama_settings(conn, {"base_url": "https://ollama.com", "model": "m", "api_key": "sk-1"})
+    row = conn.execute("SELECT encrypted FROM integration_settings WHERE name='ollama_api_key'").fetchone()
+    assert row["encrypted"] == 1
+    save_ollama_settings(conn, {"base_url": "https://ollama.com", "model": "m", "api_key": ""})
+    assert effective_ollama_settings(conn)["api_key"] == "sk-1"
+    assert ollama_headers(effective_ollama_settings(conn))["Authorization"] == "Bearer sk-1"
+    assert integration_status(conn)["ollama"]["api_key_set"] is True
+    save_ollama_settings(conn, {"base_url": "https://ollama.com", "model": "m", "clear_api_key": True})
+    assert effective_ollama_settings(conn)["api_key"] == ""
+    assert "Authorization" not in ollama_headers(effective_ollama_settings(conn))
+
+
+def test_api_key_env_fallback(vault, monkeypatch):
+    conn, _ = vault
+    monkeypatch.setenv("JOBHUNT_OLLAMA_API_KEY", "env-key")
+    assert effective_ollama_settings(conn)["api_key"] == "env-key"
+
+
+def test_unreachable_ollama_returns_error_quickly(vault):
+    conn, _ = vault
+    save_ollama_settings(conn, {"base_url": "http://127.0.0.1:9", "model": "m"})
+    result = run_ollama_test(conn)
+    assert result["ok"] is False and result["models"] == [] and result["error"]
+
+
+def test_defaults_point_at_host_docker_internal(vault):
+    conn, _ = vault
+    s = effective_ollama_settings(conn)
+    assert s["base_url"] == "http://host.docker.internal:11434" and s["model"] == "qwen2.5:7b"
+
+
+def test_test_call_lists_models(vault, monkeypatch):
+    conn, _ = vault
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"models": [{"name": "b"}, {"name": "a"}]}
+
+    monkeypatch.setattr(httpx.Client, "get", lambda self, url, **kw: FakeResponse())
+    result = run_ollama_test(conn)
+    assert result["ok"] is True and result["models"] == ["a", "b"]

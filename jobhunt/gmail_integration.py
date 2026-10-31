@@ -23,6 +23,7 @@ from jobhunt.database import connect, init_db, utc_now
 from jobhunt.integration_settings import (
     effective_gmail_settings,
     effective_ollama_settings,
+    ollama_headers,
     load_or_create_master_key,
 )
 
@@ -123,6 +124,7 @@ class OllamaConfig:
     base_url: str
     model: str
     timeout: float = 45.0
+    api_key: str = ""
 
 
 def load_ollama_config(conn=None) -> OllamaConfig:
@@ -130,8 +132,9 @@ def load_ollama_config(conn=None) -> OllamaConfig:
         settings = effective_ollama_settings(conn)
         return OllamaConfig(
             base_url=settings["base_url"],
-            model=settings["model"],
+            model=settings["models"]["classify"],
             timeout=float(os.environ.get("OLLAMA_CLASSIFIER_TIMEOUT", "45")),
+            api_key=settings["api_key"],
         )
     return OllamaConfig(
         base_url=(
@@ -145,6 +148,7 @@ def load_ollama_config(conn=None) -> OllamaConfig:
             or "qwen2.5:7b"
         ).strip(),
         timeout=float(os.environ.get("OLLAMA_CLASSIFIER_TIMEOUT", "45")),
+        api_key=os.environ.get("JOBHUNT_OLLAMA_API_KEY", "").strip(),
     )
 
 
@@ -484,7 +488,11 @@ def classify_email_with_ollama(
                 if attempt:
                     time.sleep(2)
                 try:
-                    response = client.post(f"{config.base_url.rstrip('/')}/api/generate", json=payload)
+                    response = client.post(
+                        f"{config.base_url.rstrip('/')}/api/generate",
+                        json=payload,
+                        headers=ollama_headers({"api_key": config.api_key}),
+                    )
                     response.raise_for_status()
                     break
                 except (httpx.ConnectError, httpx.TimeoutException) as exc:

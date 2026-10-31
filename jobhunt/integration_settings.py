@@ -98,20 +98,39 @@ def effective_gmail_settings(conn) -> dict:
     }
 
 
+OLLAMA_FUNCTIONS = ("draft", "refine", "classify")
+
+
 def effective_ollama_settings(conn) -> dict:
     saved_url = get_setting(conn, "ollama_base_url")
     saved_model = get_setting(conn, "ollama_model")
+    saved_key = get_setting(conn, "ollama_api_key") if has_setting(conn, "ollama_api_key") else ""
+    model = (
+        saved_model
+        or os.environ.get("OLLAMA_MODEL", "").strip()
+        or os.environ.get("JOBHUNT_OLLAMA_MODEL", "").strip()
+        or "qwen2.5:7b"
+    )
+    models = {
+        name: get_setting(conn, f"ollama_model_{name}").strip() or model for name in OLLAMA_FUNCTIONS
+    }
     return {
         "base_url": saved_url
         or os.environ.get("OLLAMA_BASE_URL", "").strip()
         or os.environ.get("JOBHUNT_OLLAMA_URL", "").strip()
         or "http://host.docker.internal:11434",
-        "model": saved_model
-        or os.environ.get("OLLAMA_MODEL", "").strip()
-        or os.environ.get("JOBHUNT_OLLAMA_MODEL", "").strip()
-        or "qwen2.5:7b",
+        "model": model,
+        "api_key": saved_key or os.environ.get("JOBHUNT_OLLAMA_API_KEY", "").strip(),
+        "models": models,
         "source": "vault" if saved_url or saved_model else "environment",
     }
+
+
+def ollama_headers(settings: dict) -> dict[str, str]:
+    headers = {"Content-Type": "application/json"}
+    if settings.get("api_key"):
+        headers["Authorization"] = f"Bearer {settings['api_key']}"
+    return headers
 
 
 def validate_redirect_uri(value: str) -> str:
@@ -164,8 +183,26 @@ def save_ollama_settings(conn, payload: dict) -> dict:
     model = str(payload.get("model") or "").strip()
     if not model:
         raise ValueError("Ollama model is required.")
+    models = payload.get("models") or {}
+    if not isinstance(models, dict):
+        raise ValueError("models must be an object mapping function to model name.")
+    unknown = sorted(set(models) - set(OLLAMA_FUNCTIONS))
+    if unknown:
+        raise ValueError(f"Unknown Ollama function: {', '.join(map(str, unknown))}.")
     set_setting(conn, "ollama_base_url", base_url)
     set_setting(conn, "ollama_model", model)
+    for name in OLLAMA_FUNCTIONS:
+        if name in models:
+            value = str(models[name] or "").strip()
+            if value:
+                set_setting(conn, f"ollama_model_{name}", value)
+            else:
+                delete_settings(conn, (f"ollama_model_{name}",))
+    api_key = str(payload.get("api_key") or "").strip()
+    if payload.get("clear_api_key"):
+        delete_settings(conn, ("ollama_api_key",))
+    elif api_key:
+        set_setting(conn, "ollama_api_key", api_key, encrypted=True)
     conn.commit()
     return integration_status(conn)
 
@@ -174,16 +211,25 @@ def test_ollama_settings(conn) -> dict:
     settings = effective_ollama_settings(conn)
     try:
         with httpx.Client(timeout=8) as client:
-            response = client.get(f"{settings['base_url']}/api/tags")
+            response = client.get(f"{settings['base_url']}/api/tags", headers=ollama_headers(settings))
             response.raise_for_status()
-            models = {
-                item.get("name") or item.get("model")
-                for item in response.json().get("models", [])
-            }
-        present = any(settings["model"] in (name or "") for name in models)
-        return {"ok": True, "model": settings["model"], "model_present": present}
+            names = sorted(
+                {
+                    item.get("name") or item.get("model")
+                    for item in response.json().get("models", [])
+                    if item.get("name") or item.get("model")
+                }
+            )
+        present = any(settings["model"] in name for name in names)
+        return {"ok": True, "model": settings["model"], "model_present": present, "models": names}
     except Exception as exc:
-        return {"ok": False, "model": settings["model"], "model_present": False, "error": str(exc)[:500]}
+        return {
+            "ok": False,
+            "model": settings["model"],
+            "model_present": False,
+            "models": [],
+            "error": str(exc)[:500],
+        }
 
 
 def integration_status(conn, suggested_redirect_uri: str | None = None) -> dict:
@@ -203,6 +249,8 @@ def integration_status(conn, suggested_redirect_uri: str | None = None) -> dict:
         "ollama": {
             "base_url": ollama["base_url"],
             "model": ollama["model"],
+            "models": ollama["models"],
+            "api_key_set": bool(ollama["api_key"]),
             "source": ollama["source"],
         },
         "vault": {
