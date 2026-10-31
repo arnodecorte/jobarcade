@@ -47,8 +47,13 @@ from jobhunt.gmail_integration import (
     update_evidence,
 )
 from jobhunt.integration_settings import (
+    clear_firecrawl_settings,
     clear_gmail_settings,
+    effective_firecrawl_key,
     integration_status,
+    save_features,
+    save_firecrawl_settings,
+    scraper_enabled,
     save_gmail_settings,
     effective_ollama_settings,
     ollama_headers,
@@ -1487,7 +1492,7 @@ def extract_application_brand_theme(
         theme = write_theme(folder, {"enabled": False, "confidence": 0, "notes": ["No company source URL found."]})
     else:
         try:
-            result = extract_theme(url, provider=provider)
+            result = extract_theme(url, provider=provider, api_key=effective_firecrawl_key(conn) or None)
             font_resolution = resolve_typography(result.theme.get("typography"))
             font_tokens = font_resolution.as_theme_tokens()
             theme = write_theme(
@@ -2299,7 +2304,36 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     )
                 return
             if parsed.path == "/api/jobs/scrape":
-                self._send_json(scrape_job_listing(str(payload.get("url") or "")))
+                with db_session() as conn:
+                    if not scraper_enabled(conn):
+                        self._send_error_json(
+                            "URL scraping is disabled. Enable it under System → Features.",
+                            HTTPStatus.FORBIDDEN,
+                        )
+                        return
+                    key = effective_firecrawl_key(conn) or None
+                self._send_json(scrape_job_listing(str(payload.get("url") or ""), api_key=key))
+                return
+            if parsed.path == "/api/integrations/firecrawl/test":
+                url = str(payload.get("url") or "https://www.netflix.com")
+                with db_session() as conn:
+                    key = effective_firecrawl_key(conn)
+                try:
+                    if not key:
+                        raise ValueError("No Firecrawl API key is configured.")
+                    result = extract_theme(url, provider="firecrawl", api_key=key)
+                    theme = result.theme
+                    self._send_json(
+                        {
+                            "ok": True,
+                            "accent": theme.get("accent"),
+                            "mode": theme.get("mode"),
+                            "dark_recommended": bool(theme.get("dark_recommended")),
+                            "warnings": result.warnings,
+                        }
+                    )
+                except Exception as exc:
+                    self._send_json({"ok": False, "error": str(exc).replace(key, "***")[:500] if key else str(exc)[:500]})
                 return
             if parsed.path == "/api/jobs":
                 with db_session() as conn:
@@ -2448,6 +2482,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 with db_session() as conn:
                     self._send_json(save_ollama_settings(conn, payload))
                 return
+            if parsed.path == "/api/integrations/firecrawl":
+                with db_session() as conn:
+                    self._send_json(save_firecrawl_settings(conn, payload))
+                return
+            if parsed.path == "/api/features":
+                with db_session() as conn:
+                    self._send_json(save_features(conn, payload))
+                return
             draft_match = re.match(r"^/api/applications/([^/]+)/draft$", parsed.path)
             if draft_match:
                 self._send_json(save_application_draft(draft_match.group(1), payload))
@@ -2483,6 +2525,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/integrations/gmail":
                 with db_session() as conn:
                     self._send_json(clear_gmail_settings(conn))
+                return
+            if parsed.path == "/api/integrations/firecrawl":
+                with db_session() as conn:
+                    self._send_json(clear_firecrawl_settings(conn))
                 return
             self._send_error_json("Not found", HTTPStatus.NOT_FOUND)
         except ValueError as exc:

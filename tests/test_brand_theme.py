@@ -239,3 +239,15 @@ def test_sanitize_theme_preserves_nested_typography_resolution():
     )
 
     assert result.theme["typography_resolution"] == nested
+
+
+def test_extract_theme_passes_api_key(monkeypatch):
+    seen = {}
+
+    def fake(url, api_key=None, timeout=45.0):
+        seen["api_key"] = api_key
+        return brand_theme.ThemeResult(theme={"enabled": True}, warnings=[])
+
+    monkeypatch.setattr(brand_theme, "extract_theme_with_firecrawl", fake)
+    brand_theme.extract_theme("https://example.com", provider="firecrawl", api_key="k-123")
+    assert seen["api_key"] == "k-123"

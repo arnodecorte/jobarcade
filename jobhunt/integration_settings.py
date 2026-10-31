@@ -232,12 +232,45 @@ def test_ollama_settings(conn) -> dict:
         }
 
 
+def effective_firecrawl_key(conn) -> str:
+    saved = get_setting(conn, "firecrawl_api_key") if has_setting(conn, "firecrawl_api_key") else ""
+    return saved or os.environ.get("FIRECRAWL_API_KEY", "").strip()
+
+
+def save_firecrawl_settings(conn, payload: dict) -> dict:
+    api_key = str(payload.get("api_key") or "").strip()
+    if not api_key:
+        raise ValueError("Firecrawl API key is required.")
+    set_setting(conn, "firecrawl_api_key", api_key, encrypted=True)
+    conn.commit()
+    return integration_status(conn)
+
+
+def clear_firecrawl_settings(conn) -> dict:
+    delete_settings(conn, ("firecrawl_api_key",))
+    conn.commit()
+    return integration_status(conn)
+
+
+def scraper_enabled(conn) -> bool:
+    return get_setting(conn, "feature_scraper") == "1" or os.environ.get("JOBHUNT_ENABLE_SCRAPER", "").strip() == "1"
+
+
+def save_features(conn, payload: dict) -> dict:
+    if "scraper" in payload:
+        set_setting(conn, "feature_scraper", "1" if payload["scraper"] is True else "0")
+    conn.commit()
+    return integration_status(conn)
+
+
 def integration_status(conn, suggested_redirect_uri: str | None = None) -> dict:
     load_or_create_master_key()
     gmail = effective_gmail_settings(conn)
     ollama = effective_ollama_settings(conn)
     callback = gmail["redirect_uri"] or suggested_redirect_uri or ""
     path = secret_key_path()
+    firecrawl_saved = has_setting(conn, "firecrawl_api_key")
+    firecrawl_env = bool(os.environ.get("FIRECRAWL_API_KEY", "").strip())
     return {
         "gmail": {
             "configured": all((gmail["client_id"], gmail["client_secret"], callback)),
@@ -253,6 +286,11 @@ def integration_status(conn, suggested_redirect_uri: str | None = None) -> dict:
             "api_key_set": bool(ollama["api_key"]),
             "source": ollama["source"],
         },
+        "firecrawl": {
+            "configured": firecrawl_saved or firecrawl_env,
+            "source": "vault" if firecrawl_saved else "environment" if firecrawl_env else "none",
+        },
+        "features": {"scraper": scraper_enabled(conn)},
         "vault": {
             "ready": True,
             "key_path": str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else "external",

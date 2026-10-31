@@ -9,14 +9,19 @@ from cryptography.fernet import Fernet
 
 from jobhunt.database import init_db
 from jobhunt.integration_settings import (
+    clear_firecrawl_settings,
     clear_gmail_settings,
     decrypt_setting,
+    effective_firecrawl_key,
     effective_gmail_settings,
     effective_ollama_settings,
     integration_status,
     load_or_create_master_key,
     ollama_headers,
+    save_features,
+    save_firecrawl_settings,
     save_gmail_settings,
+    scraper_enabled,
     save_ollama_settings,
     test_ollama_settings as run_ollama_test,
     validate_ollama_url,
@@ -38,6 +43,8 @@ def vault(tmp_path, monkeypatch):
         "JOBHUNT_OLLAMA_URL",
         "JOBHUNT_OLLAMA_MODEL",
         "JOBHUNT_OLLAMA_API_KEY",
+        "FIRECRAWL_API_KEY",
+        "JOBHUNT_ENABLE_SCRAPER",
     ):
         monkeypatch.delenv(name, raising=False)
     return init_db(tmp_path / "jobs.sqlite"), key_path
@@ -220,3 +227,49 @@ def test_test_call_lists_models(vault, monkeypatch):
     monkeypatch.setattr(httpx.Client, "get", lambda self, url, **kw: FakeResponse())
     result = run_ollama_test(conn)
     assert result["ok"] is True and result["models"] == ["a", "b"]
+
+
+def test_firecrawl_key_vault_beats_env(vault, monkeypatch):
+    conn, _ = vault
+    monkeypatch.setenv("FIRECRAWL_API_KEY", "env")
+    status = integration_status(conn)
+    assert status["firecrawl"] == {"configured": True, "source": "environment"}
+    assert effective_firecrawl_key(conn) == "env"
+
+    status = save_firecrawl_settings(conn, {"api_key": "vault"})
+    assert effective_firecrawl_key(conn) == "vault"
+    assert status["firecrawl"] == {"configured": True, "source": "vault"}
+
+    status = clear_firecrawl_settings(conn)
+    assert effective_firecrawl_key(conn) == "env"
+    assert status["firecrawl"]["source"] == "environment"
+
+
+def test_firecrawl_key_none_when_unset_and_required(vault):
+    conn, _ = vault
+    assert integration_status(conn)["firecrawl"] == {"configured": False, "source": "none"}
+    with pytest.raises(ValueError):
+        save_firecrawl_settings(conn, {"api_key": "  "})
+
+
+def test_firecrawl_key_stored_encrypted(vault):
+    conn, _ = vault
+    status = save_firecrawl_settings(conn, {"api_key": "fc-secret-123"})
+    row = conn.execute(
+        "SELECT value, encrypted FROM integration_settings WHERE name = 'firecrawl_api_key'"
+    ).fetchone()
+    assert row["encrypted"] == 1
+    assert "fc-secret-123" not in row["value"]
+    assert decrypt_setting(row["value"]) == "fc-secret-123"
+    assert "fc-secret-123" not in str(status)
+
+
+def test_scraper_disabled_by_default_and_toggleable(vault, monkeypatch):
+    conn, _ = vault
+    assert scraper_enabled(conn) is False
+    assert integration_status(conn)["features"] == {"scraper": False}
+    assert save_features(conn, {"scraper": True})["features"] == {"scraper": True}
+    assert scraper_enabled(conn) is True
+    assert save_features(conn, {"scraper": False})["features"] == {"scraper": False}
+    monkeypatch.setenv("JOBHUNT_ENABLE_SCRAPER", "1")
+    assert scraper_enabled(conn) is True

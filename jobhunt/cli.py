@@ -334,6 +334,11 @@ def cmd_auto_draft(args: argparse.Namespace) -> int:
 def cmd_scrape_listing(args: argparse.Namespace) -> int:
     from jobhunt.job_scrape import scrape_job_listing
 
+    print(
+        "Note: URL scraping is deprecated and may break on some sites. "
+        "Paste the job description into the dashboard instead.",
+        file=sys.stderr,
+    )
     try:
         result = scrape_job_listing(args.url)
     except Exception as exc:

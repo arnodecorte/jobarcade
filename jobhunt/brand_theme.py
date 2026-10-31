@@ -436,12 +436,12 @@ def extract_theme_with_firecrawl(url: str, api_key: str | None = None, timeout: 
     return _firecrawl_branding_to_theme(branding, data.get("metadata", {}).get("sourceURL") or target)
 
 
-def extract_theme(url: str, provider: str = "auto") -> ThemeResult:
+def extract_theme(url: str, provider: str = "auto", api_key: str | None = None) -> ThemeResult:
     if provider not in {"auto", "firecrawl", "local"}:
         raise ValueError("Theme provider must be auto, firecrawl, or local.")
     if provider in {"auto", "firecrawl"}:
         try:
-            return extract_theme_with_firecrawl(url)
+            return extract_theme_with_firecrawl(url, api_key=api_key)
         except Exception as exc:
             if provider == "firecrawl":
                 raise

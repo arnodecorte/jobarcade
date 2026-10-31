@@ -317,8 +317,8 @@ def fetch_html(url: str, timeout: float = 12.0) -> str:
         return response.text
 
 
-def fetch_firecrawl_markdown(url: str, timeout: float = 20.0) -> dict:
-    key = os.environ.get("FIRECRAWL_API_KEY")
+def fetch_firecrawl_markdown(url: str, timeout: float = 20.0, api_key: str | None = None) -> dict:
+    key = api_key or os.environ.get("FIRECRAWL_API_KEY")
     if not key:
         raise ValueError("FIRECRAWL_API_KEY is not set, so JS-rendered pages can't be scraped.")
     response = httpx.post(
@@ -354,10 +354,11 @@ def scrape_job_listing(
     url: str,
     fetcher: Callable[[str], str] | None = None,
     firecrawl_fetcher: Callable[[str], dict] | None = None,
+    api_key: str | None = None,
 ) -> dict:
     target = _validate_url(url)
     fetch = fetcher or fetch_html
-    firecrawl = firecrawl_fetcher or fetch_firecrawl_markdown
+    firecrawl = firecrawl_fetcher or (lambda target_url: fetch_firecrawl_markdown(target_url, api_key=api_key))
 
     html: str | None = None
     fetch_error: str | None = None

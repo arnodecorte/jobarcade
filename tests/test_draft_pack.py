@@ -481,7 +481,7 @@ def test_extract_and_reset_application_brand_theme(tmp_path, monkeypatch):
     monkeypatch.setattr(dashboard, "APPLICATIONS_DIR", apps)
     save_application_draft(folder.name, valid_payload())
 
-    def fake_extract(url, provider="auto"):
+    def fake_extract(url, provider="auto", api_key=None):
         from jobhunt.brand_theme import sanitize_theme
 
         return sanitize_theme(
@@ -532,7 +532,7 @@ def test_extract_application_brand_theme_prefers_company_brand_url(tmp_path, mon
     save_application_draft(folder.name, valid_payload())
     seen = {}
 
-    def fake_extract(url, provider="auto"):
+    def fake_extract(url, provider="auto", api_key=None):
         seen["url"] = url
         from jobhunt.brand_theme import sanitize_theme
 
