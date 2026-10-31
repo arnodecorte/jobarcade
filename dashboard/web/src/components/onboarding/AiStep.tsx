@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { saveOllamaIntegration, testOllamaIntegration } from "../../lib/api";
-import { aiTestOutcome } from "../../lib/onboarding";
+import { aiSavePayload, aiTestOutcome } from "../../lib/onboarding";
 import { StepFooter, StepHead } from "./StepFooter";
 import type { StepProps } from "./types";
 
@@ -29,12 +29,7 @@ export function AiStep({ integrations, onBack, onSkip, onContinue, reload }: Ste
   const [error, setError] = useState("");
 
   async function persist() {
-    await saveOllamaIntegration({
-      base_url: url.trim(),
-      model: models.draft,
-      models,
-      ...(key.trim() ? { api_key: key.trim() } : {}),
-    });
+    await saveOllamaIntegration(aiSavePayload(url, models, key));
   }
 
   async function runTest() {

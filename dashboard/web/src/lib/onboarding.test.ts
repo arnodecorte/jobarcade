@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { aiTestOutcome, initialGoalValues, linesToList, needsSetupBanner, nextStep, prevStep, shouldShowOnboarding } from "./onboarding";
+import { aiSavePayload, aiTestOutcome, initialGoalValues, linesToList, needsSetupBanner, nextStep, prevStep, shouldShowOnboarding } from "./onboarding";
 
 describe("onboarding helpers", () => {
+  it("clears per-function model overrides that equal the chosen default model", () => {
+    expect(aiSavePayload(" http://localhost:11434 ", { draft: "qwen2.5:7b", refine: "qwen2.5:7b", classify: "qwen2.5:3b" }, "")).toEqual({
+      base_url: "http://localhost:11434",
+      model: "qwen2.5:7b",
+      models: { draft: "", refine: "", classify: "qwen2.5:3b" },
+    });
+    expect(aiSavePayload("https://ollama.com", { draft: "m1", refine: "m1", classify: "m1" }, " sk-1 ")).toEqual({
+      base_url: "https://ollama.com",
+      model: "m1",
+      models: { draft: "", refine: "", classify: "" },
+      api_key: "sk-1",
+    });
+  });
+
   it("walks the steps in order", () => {
     expect(nextStep("welcome")).toBe("ai");
     expect(nextStep("goal")).toBeNull();

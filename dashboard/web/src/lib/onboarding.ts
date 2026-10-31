@@ -56,3 +56,27 @@ export function aiTestOutcome(stage: "save" | "test", result: { ok: boolean; err
   if (result instanceof Error) return { kind: "unreachable", detail: result.message };
   return result.ok ? { kind: "ok" } : { kind: "unreachable", detail: result.error || "" };
 }
+
+/** Build the Ollama settings payload, clearing any per-function model override that equals the chosen default model. */
+export function aiSavePayload(
+  url: string,
+  models: { draft: string; refine: string; classify: string },
+  key: string
+) {
+  const defaultModel = models.draft.trim();
+  const override = (v: string) => {
+    const trimmed = v.trim();
+    return trimmed === defaultModel ? "" : trimmed;
+  };
+  return {
+    base_url: url.trim(),
+    model: defaultModel,
+    models: {
+      draft: "",
+      refine: override(models.refine),
+      classify: override(models.classify),
+    },
+    ...(key.trim() ? { api_key: key.trim() } : {}),
+  };
+}
+

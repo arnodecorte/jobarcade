@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { PageProps } from "../App";
 import type { Company } from "../lib/api";
-import { addCompany, resetOnboarding, setScraperFeature } from "../lib/api";
+import { addCompany, clearDemo, setScraperFeature } from "../lib/api";
 import { navigate } from "../lib/hooks";
 import { PageHeader } from "../components/PageHeader";
 import { CompanyLogo } from "../components/CompanyLogo";
@@ -34,17 +34,27 @@ export function System({ data, reload, refreshing }: PageProps) {
   const { companies, coverage, summary } = data;
   const [msg, setMsg] = useState("");
   const [togglingScraper, setTogglingScraper] = useState(false);
+  const [clearingDemo, setClearingDemo] = useState(false);
   const scraperOn = data.integrations.features?.scraper ?? false;
+  const demoJobs = data.onboarding.demo_jobs ?? 0;
   const health = summary.scraper_health_counts || {};
   const rows = sortCompanies(companies);
 
-  async function rerunSetup() {
+  function rerunSetup() {
+    navigate("setup");
+  }
+
+  async function removeSampleData() {
+    setClearingDemo(true);
+    setMsg("");
     try {
-      await resetOnboarding();
+      await clearDemo();
+      setMsg("Sample data removed.");
       reload();
-      navigate("setup");
     } catch (err) {
       setMsg((err as Error).message);
+    } finally {
+      setClearingDemo(false);
     }
   }
 
@@ -93,12 +103,21 @@ export function System({ data, reload, refreshing }: PageProps) {
       />
 
       <div className="system-stack">
+        {msg && <p className="muted" role="status" style={{ fontSize: 12.5, margin: 0 }}>{msg}</p>}
+
         <section className="panel ob-rerun">
           <div>
             <h2>First-run setup</h2>
             <p className="panel-sub">Walk through the AI, profile, CV style and goal steps again. Your data stays as it is until you save.</p>
           </div>
-          <button type="button" className="btn ghost" onClick={rerunSetup}>Re-run setup</button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {demoJobs > 0 && (
+              <button type="button" className="btn ghost" onClick={removeSampleData} disabled={clearingDemo}>
+                {clearingDemo ? "Removing…" : "Remove sample data"}
+              </button>
+            )}
+            <button type="button" className="btn ghost" onClick={rerunSetup}>Re-run setup</button>
+          </div>
         </section>
 
         <section className="panel ob-rerun">

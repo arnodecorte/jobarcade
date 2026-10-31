@@ -683,6 +683,7 @@ export type OnboardingState = {
   step: string;
   checks: OnboardingChecks;
   profile_error?: string | null;
+  demo_jobs?: number;
 };
 
 export const getOnboarding = () => api<OnboardingState>("/api/onboarding");
@@ -692,6 +693,7 @@ export const completeOnboarding = () => post<OnboardingState>("/api/onboarding/c
 export const skipOnboarding = () => post<OnboardingState>("/api/onboarding/skip");
 export const resetOnboarding = () => post<OnboardingState>("/api/onboarding/reset");
 export const seedDemo = () => post<{ jobs: number; draft_folder: string }>("/api/demo/seed");
+export const clearDemo = () => api<{ removed: number }>("/api/demo", { method: "DELETE" });
 
 export type ProfileDoc = {
   candidate?: {

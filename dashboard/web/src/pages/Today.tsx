@@ -11,7 +11,7 @@ import { needsSetupBanner } from "../lib/onboarding";
 import { formatDate, OUTCOME_STATUSES, PIPELINE_STATUSES, STATUS_LABELS } from "../lib/format";
 import { applyTodayQueue } from "../lib/jobs";
 import { GoalCelebration } from "../components/GoalCelebration";
-import { saveGoals } from "../lib/api";
+import { clearDemo, saveGoals } from "../lib/api";
 import { localIsoDate, shouldCelebrate } from "../lib/celebrate";
 import { celebrationStats, effectiveRate, etaDays, formatEta } from "../lib/odds";
 import { listContainer, listItem, pill, pillsContainer, tile, tilesContainer } from "../lib/motion";
@@ -89,6 +89,23 @@ export function Today({ data, reload, refreshing }: PageProps) {
             <span>Connect your local Ollama and JobArcade can tailor each application for you. It takes about a minute.</span>
           </div>
           <button type="button" className="btn rose sm" onClick={() => navigate("setup")}>Finish setup</button>
+        </div>
+      )}
+
+      {(data.onboarding.demo_jobs ?? 0) > 0 && (
+        <div className="setup-banner" role="status">
+          <div>
+            <strong>You're exploring sample data</strong>
+          </div>
+          <button
+            type="button"
+            className="btn ghost sm"
+            onClick={() => {
+              clearDemo().then(() => reload()).catch(() => undefined);
+            }}
+          >
+            Remove it
+          </button>
         </div>
       )}
 

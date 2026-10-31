@@ -21,7 +21,8 @@ type Props = { onboarding: OnboardingState; integrations: IntegrationStatus; goa
 
 export function Onboarding({ onboarding, integrations, goals, reload }: Props) {
   const reduce = useReducedMotion();
-  const [step, setStep] = useState<Step>(isStep(onboarding.step) ? onboarding.step : "welcome");
+  const initialStep: Step = onboarding.status === "complete" ? "welcome" : isStep(onboarding.step) ? onboarding.step : "welcome";
+  const [step, setStep] = useState<Step>(initialStep);
   const [dir, setDir] = useState(1);
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState("");

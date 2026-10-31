@@ -13,7 +13,7 @@ export function ProfileStep({ onboarding, onBack, onSkip, onContinue, reload }: 
   const [f, setF] = useState({
     name: "", tagline: "", email: "", phone: "", location: "", linkedin: "", portfolio: "",
     facts: "", skills: "", roles: "", locations: "", remote: true,
-    adjacent: "", excluded: "", maxYears: "", senior: true, internships: true, patterns: "",
+    adjacent: "", excluded: "", maxYears: "", senior: false, internships: false, patterns: "",
   });
   const [linkedinUrl, setLinkedinUrl] = useState<string | undefined>();
   const [portfolioUrl, setPortfolioUrl] = useState<string | undefined>();
@@ -35,7 +35,7 @@ export function ProfileStep({ onboarding, onBack, onSkip, onContinue, reload }: 
           locations: join(t.target_locations), remote: t.allow_remote ?? true,
           adjacent: join(t.adjacent_roles), excluded: join(t.excluded_functions),
           maxYears: t.max_years_experience == null ? "" : String(t.max_years_experience),
-          senior: t.exclude_senior_titles ?? true, internships: t.exclude_internships ?? true,
+          senior: t.exclude_senior_titles ?? false, internships: t.exclude_internships ?? false,
           patterns: join(t.excluded_language_patterns),
         });
         setLinkedinUrl(k.linkedin_url);
@@ -128,6 +128,10 @@ export function ProfileStep({ onboarding, onBack, onSkip, onContinue, reload }: 
               <label className="ob-check"><input type="checkbox" checked={f.internships} onChange={(e) => set("internships", e.target.checked)} /> Exclude internships</label>
             </div>
           </details>
+          <p className="ob-note">
+            Education, languages, certifications and an optional signature image for your letters live in
+            config/profile.yaml. Add them there whenever you like; they show up on every CV and letter you build.
+          </p>
           {error && <p className="ob-error" role="alert">{error}</p>}
         </div>
       )}
