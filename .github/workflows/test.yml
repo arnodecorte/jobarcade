@@ -20,7 +20,7 @@ jobs:
 
       - name: Install Typst CLI
         run: |
-          TYPST_VERSION=v0.11.0
+          TYPST_VERSION=v0.15.0
           curl -sSL "https://github.com/typst/typst/releases/download/${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz" | tar -xJ --strip-components=1 -C /usr/local/bin typst-x86_64-unknown-linux-musl/typst
           typst --version
 

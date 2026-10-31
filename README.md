@@ -198,7 +198,7 @@ These are population averages, not promises; your field, seniority and tailoring
 
 ### Prerequisites
 - **Python 3.11+**
-- **Typst CLI (`v0.11+`)**: `brew install typst` (macOS), `winget install Typst.Typst` (Windows), or official Linux binary.
+- **Typst CLI (`v0.15+`)**: `brew install typst` (macOS), `winget install Typst.Typst` (Windows), or official Linux binary.
 - **Ollama**: Running locally (`ollama serve`).
 
 ```bash
