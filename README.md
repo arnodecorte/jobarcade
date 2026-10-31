@@ -155,8 +155,12 @@ Chameleon works with local CSS/HTML heuristics out of the box. A free [Firecrawl
 
 ### Try it with demo data
 ```bash
-python -m jobhunt seed-demo           # fictional sample jobs and one draft
-python -m jobhunt seed-demo --clear   # remove them again
+# Docker
+docker compose exec dashboard python -m jobhunt seed-demo           # fictional sample jobs and one draft
+docker compose exec dashboard python -m jobhunt seed-demo --clear   # remove them again
+
+# Local install
+python -m jobhunt seed-demo [--clear]
 ```
 
 *(Optional)* Copy `.env.example` to `.env` to preset `JOBHUNT_OLLAMA_URL`, `JOBHUNT_OLLAMA_MODEL`, `JOBHUNT_OLLAMA_API_KEY` or `FIRECRAWL_API_KEY`.
@@ -221,7 +225,7 @@ JobArcade includes a full command-line interface for scripting and agentic workf
 | `python -m jobhunt validate` | Verify `config/profile.yaml`, SQLite schema, and `typst` binary installation. |
 | `python -m jobhunt dashboard` | Start the web dashboard server (`--host 127.0.0.1 --port 8765`). |
 | `python -m jobhunt seed-demo [--clear]` | Add (or remove) fictional sample jobs and a draft for trying the dashboard. |
-| `python -m jobhunt scrape-listing "<URL>"` | *Experimental, deprecated.* Extract job details from a URL (needs `JOBHUNT_ENABLE_SCRAPER=1`). |
+| `python -m jobhunt scrape-listing "<URL>"` | *Deprecated/experimental.* Extract job details from a URL; prints a deprecation notice. The scraper flag only gates the dashboard UI and API. |
 | `python -m jobhunt auto-draft --limit 5` | Batch-generate Ollama CV & cover letter drafts for top-scored unbuilt roles. |
 | `python -m jobhunt build --app <Folder>` | Compile `cv.pdf` and `motivation-letter.pdf` for an application folder via Typst. |
 

@@ -78,10 +78,10 @@ jobhunt/                     # Python backend & CLI
 
 1. `python -m jobhunt validate` — check config, profile schema, and database connectivity.
 2. `python -m jobhunt dashboard [--host 0.0.0.0] [--port 8765]` — launch the web dashboard and REST API.
-3. `python -m jobhunt scrape-listing "<URL>"` — **deprecated/experimental**: extract role details from a job listing URL (requires the scraper flag).
-   `python -m jobhunt seed-demo [--clear]` — add (or remove) fictional sample jobs and a draft.
-4. `python -m jobhunt tailor-drafts` — run batch AI tailoring on draft applications.
-5. `python -m jobhunt build --company <Company> --role <Role>` — compile Typst PDFs from CLI.
+3. `python -m jobhunt scrape-listing "<URL>"` — **deprecated/experimental**: extract role details from a job listing URL. Prints a deprecation notice and still runs; `JOBHUNT_ENABLE_SCRAPER` only gates the dashboard UI and API.
+4. `python -m jobhunt seed-demo [--clear]` — add (or remove) fictional sample jobs and a draft.
+5. `python -m jobhunt tailor-drafts` — run batch AI tailoring on draft applications.
+6. `python -m jobhunt build --app <Folder>` — compile Typst PDFs from CLI for `Applications/<Folder>`.
 
 ## CV & Letter Tailoring (Typst)
 
