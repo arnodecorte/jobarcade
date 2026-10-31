@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { PageProps } from "../App";
 import type { Company } from "../lib/api";
-import { addCompany, resetOnboarding } from "../lib/api";
+import { addCompany, resetOnboarding, setScraperFeature } from "../lib/api";
 import { navigate } from "../lib/hooks";
 import { PageHeader } from "../components/PageHeader";
 import { CompanyLogo } from "../components/CompanyLogo";
@@ -46,6 +46,15 @@ export function System({ data, reload, refreshing }: PageProps) {
     }
   }
 
+  async function toggleScraper(on: boolean) {
+    try {
+      await setScraperFeature(on);
+      reload();
+    } catch (err) {
+      setMsg((err as Error).message);
+    }
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
@@ -85,6 +94,20 @@ export function System({ data, reload, refreshing }: PageProps) {
             <p className="panel-sub">Walk through the AI, profile, CV style and goal steps again. Your data stays as it is until you save.</p>
           </div>
           <button type="button" className="btn ghost" onClick={rerunSetup}>Re-run setup</button>
+        </section>
+
+        <section className="panel ob-rerun">
+          <div>
+            <h2>Features</h2>
+            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={data.integrations.features?.scraper ?? false}
+                onChange={(e) => toggleScraper(e.target.checked)}
+              />
+              Experimental: URL scraping (may break on some sites)
+            </label>
+          </div>
         </section>
 
         <SystemDisclosure

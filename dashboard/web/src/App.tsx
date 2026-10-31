@@ -23,6 +23,7 @@ import { Odds } from "./pages/Odds";
 import { System } from "./pages/System";
 import { Discover } from "./pages/Discover";
 import { freshJobs } from "./lib/jobs";
+import { ScraperContext } from "./lib/features";
 import { clearLegacyGoals, localGoalsToMigrate } from "./lib/goals";
 
 export type DashData = {
@@ -101,7 +102,8 @@ export function App() {
     window.addEventListener("jobarcade:rejected", onRejected);
     return () => window.removeEventListener("jobarcade:rejected", onRejected);
   }, []);
-  const freshCount = data ? freshJobs(data.jobs).rows.length : 0;
+  const scraper = data?.integrations.features?.scraper ?? false;
+  const freshCount = data && scraper ? freshJobs(data.jobs).rows.length : 0;
 
   if (data && shouldShowOnboarding(data.onboarding.status, route)) {
     return (
@@ -113,10 +115,11 @@ export function App() {
   }
 
   return (
+    <ScraperContext.Provider value={scraper}>
     <DraftProvider onGenerated={reload}>
       <Grainient />
       {data?.onboarding.status === "complete" && showChameleonUpdate && <ChameleonUpdateSplash onDismiss={dismissChameleonUpdate} />}
-      <BubbleMenu route={route} freshCount={freshCount} />
+      <BubbleMenu route={route} freshCount={freshCount} scraper={scraper} />
       <div className="shell">
         <AnimatePresence mode="wait" initial={false}>
           <motion.main
@@ -136,11 +139,11 @@ export function App() {
                 case "jobs":
                   return <Jobs {...props} />;
                 case "fresh":
-                  return <Fresh {...props} />;
+                  return scraper ? <Fresh {...props} /> : <Today {...props} />;
                 case "odds":
                   return <Odds {...props} />;
                 case "discover":
-                  return <Discover {...props} />;
+                  return scraper ? <Discover {...props} /> : <Today {...props} />;
                 case "system":
                   return <System {...props} />;
                 default:
@@ -155,5 +158,6 @@ export function App() {
       <AmbientAngie />
       <Toast message={toast} onClose={closeToast} />
     </DraftProvider>
+    </ScraperContext.Provider>
   );
 }

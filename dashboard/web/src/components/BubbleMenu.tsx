@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import { navigate } from "../lib/hooks";
 import { RELEASE } from "../lib/releaseNotes";
+import { visibleNav } from "../lib/features";
 
 /* Bubble navigation: a slim fixed bar (brand + toggle) that pops the five
    routes open as big pastel bubbles — one per theme accent. Replaces the old
@@ -29,7 +30,7 @@ const NAV: NavItem[] = [
   { key: "fresh", label: "Fresh", tone: "mint", hint: "Just found" },
   { key: "odds", label: "Odds", tone: "butter", hint: "Read your chances" },
   { key: "discover", label: "Discover", tone: "rose", hint: "Find companies" },
-  { key: "system", label: "System", tone: "mint", hint: "Scraper health" },
+  { key: "system", label: "System", tone: "mint", hint: "Settings & health" },
 ];
 
 const cloud: Variants = {
@@ -44,11 +45,12 @@ const bubble: Variants = {
   exit: { opacity: 0, scale: 0.4, y: 8, transition: { duration: 0.12 } },
 };
 
-export function BubbleMenu({ route, freshCount = 0 }: { route: string; freshCount?: number }) {
+export function BubbleMenu({ route, freshCount = 0, scraper }: { route: string; freshCount?: number; scraper: boolean }) {
   const [open, setOpen] = useState(false);
   const reduce = useReducedMotion();
   const toggleRef = useRef<HTMLButtonElement>(null);
-  const current = NAV.find((n) => n.key === route) ?? NAV[0];
+  const items = visibleNav(NAV, scraper);
+  const current = items.find((n) => n.key === route) ?? items[0];
 
   useEffect(() => {
     if (!open) return;
@@ -125,7 +127,7 @@ export function BubbleMenu({ route, freshCount = 0 }: { route: string; freshCoun
               aria-label="Primary"
               onClick={(e) => e.stopPropagation()}
             >
-              {NAV.map((item, i) => (
+              {items.map((item, i) => (
                 <motion.button
                   key={item.key}
                   type="button"

@@ -567,6 +567,8 @@ export const warmupOllama = () =>
 
 export const getGmailStatus = () => api<GmailStatus>("/api/gmail/status");
 export const getIntegrationStatus = () => api<IntegrationStatus>("/api/integrations");
+export const setScraperFeature = (scraper: boolean) =>
+  api<IntegrationStatus>("/api/features", { method: "PUT", body: JSON.stringify({ scraper }) });
 
 export const saveGmailIntegration = (body: {
   client_id: string;

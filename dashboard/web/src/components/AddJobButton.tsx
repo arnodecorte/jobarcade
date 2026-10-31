@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
 import { addJob, scrapeJobUrl } from "../lib/api";
+import { useScraperEnabled } from "../lib/features";
 import { EDITABLE_STATUSES, STATUS_LABELS } from "../lib/format";
 
 const ADD_STATUSES = EDITABLE_STATUSES.filter((s) => s !== "skipped" && s !== "expired" && s !== "scrape_failed");
 
 /** "+ Add Job" — lets Angie track a role the scrapers never saw, next to Refresh on every page. */
 export function AddJobButton({ onAdded }: { onAdded: () => void }) {
+  const scraper = useScraperEnabled();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -104,27 +106,33 @@ export function AddJobButton({ onAdded }: { onAdded: () => void }) {
                 Apply URL
                 <div className="add-job-url-row">
                   <input name="apply_url" type="url" placeholder="https://…" />
-                  <button
-                    className="btn ghost sm add-job-scrape-btn"
-                    type="button"
-                    onClick={onScrape}
-                    disabled={scraping || busy}
-                    aria-label={scraping ? "Scraping job posting" : "Scrape job posting"}
-                    title={scraping ? "Scraping job posting" : "Scrape job posting"}
-                  >
-                    <span className="add-job-scrape-label">{scraping ? "Scraping…" : "Scrape"}</span>
-                    <span className="add-job-scrape-icon" aria-hidden="true">{scraping ? "…" : "↗"}</span>
-                  </button>
+                  {scraper && (
+                    <button
+                      className="btn ghost sm add-job-scrape-btn"
+                      type="button"
+                      onClick={onScrape}
+                      disabled={scraping || busy}
+                      aria-label={scraping ? "Scraping job posting" : "Scrape job posting"}
+                      title={scraping ? "Scraping job posting" : "Scrape job posting"}
+                    >
+                      <span className="add-job-scrape-label">{scraping ? "Scraping…" : "Scrape"}</span>
+                      <span className="add-job-scrape-icon" aria-hidden="true">{scraping ? "…" : "↗"}</span>
+                    </button>
+                  )}
                 </div>
               </label>
-              {scrapeNote && (
+              {scraper && scrapeNote && (
                 <p className={scrapeNote.kind === "error" ? "banner-error" : "panel-sub"} style={{ marginBottom: 12 }}>
                   {scrapeNote.text}
                 </p>
               )}
               <label className="field">
-                Notes
-                <textarea name="notes" rows={4} placeholder="Optional — the job description lands here and feeds CV drafting" />
+                {scraper ? "Notes" : "Job description"}
+                <textarea
+                  name="notes"
+                  rows={4}
+                  placeholder={scraper ? "Optional — the job description lands here and feeds CV drafting" : "Paste the job description — it feeds CV & letter drafting"}
+                />
               </label>
               <label className="field">
                 Status
