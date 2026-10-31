@@ -41,7 +41,7 @@ docker-compose.override.yml
 docker-data/
 *.pid
 
-# Local environment (holds the host-specific Tailscale bind IP) — .env.example is committed
+# Local environment — .env.example is committed
 .env
 .venv/
 
@@ -60,3 +60,8 @@ config/profile.yaml
 # Application compiled PDFs
 Applications/**/cv.pdf
 Applications/**/motivation-letter.pdf
+
+# Runtime artifacts created by the app
+config/default-theme.yaml
+data/.typst_profile.yaml
+data/.preview/

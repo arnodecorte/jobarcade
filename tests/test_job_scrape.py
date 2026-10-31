@@ -212,7 +212,7 @@ def test_double_escaped_json_ld_description_is_stripped():
 
 
 def test_literal_backslash_n_normalized():
-    # Sungrow's JSON-LD carries literal "\n" sequences in the description text.
+    # Some careers sites' JSON-LD carries literal "\n" sequences in the description text.
     html = r"""
     <script type="application/ld+json">
     {"@type": "JobPosting", "title": "Marketing Manager",
@@ -220,7 +220,7 @@ def test_literal_backslash_n_normalized():
     </script>
     """
 
-    extract = extract_from_json_ld(html, "https://career-europe.sungrowpower.com/offer/x")
+    extract = extract_from_json_ld(html, "https://careers.example.com/offer/x")
 
     assert "\\n" not in extract.description
     assert "Your duties\nJoin us" in extract.description

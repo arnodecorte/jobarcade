@@ -149,10 +149,9 @@ export function System({ data, reload, refreshing }: PageProps) {
             </form>
         </SystemDisclosure>
 
-        <SystemDisclosure title="Engineering" summary="Raw database and draft-builder tools">
+        <SystemDisclosure title="Engineering" summary="Draft-builder tools">
             <p className="panel-sub">The developer surfaces, kept separate from the daily flow.</p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <a className="btn ghost sm" href="/database">Raw scraper DB →</a>
               <a className="btn ghost sm" href="/draft">Draft builder →</a>
             </div>
         </SystemDisclosure>

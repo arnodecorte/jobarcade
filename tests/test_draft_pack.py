@@ -32,7 +32,7 @@ def valid_payload():
             "experience": [
                 {
                     "role": "Marketing Coordinator",
-                    "company": "tex.tracer",
+                    "company": "Northstar Cloud",
                     "period": "2026",
                     "location": "Amsterdam, NL",
                     "bullets": ["Coordinated campaign deliverables across web, social, email, CRM, and events."],
@@ -97,7 +97,7 @@ def test_validate_draft_payload_normalizes_grotesk_marketing_experience():
             "additional": [
                 {
                     "role": "Curatorial Assistant",
-                    "company": "Victory Art Rotterdam",
+                    "company": "Studio Kinetix",
                     "period": "2022",
                     "location": "Rotterdam, NL",
                     "bullets": ["Produced 10+ marketing collateral pieces for artist and partner conversations."],
@@ -113,7 +113,7 @@ def test_validate_draft_payload_normalizes_grotesk_marketing_experience():
     assert cv_data["selected_highlights"] == []
     assert cv_data["additional"] == []
     assert cv_data["experience"][-1]["role"] == "Curatorial Assistant"
-    assert cv_data["experience"][-1]["company"] == "Victory Art Rotterdam"
+    assert cv_data["experience"][-1]["company"] == "Studio Kinetix"
 
 
 def test_review_cv_payload_flags_sparse_two_page_risk():
@@ -154,21 +154,21 @@ def grotesk_payload(role_specs):
 
 
 FULL_GROTESK_ROLES = [
-    ("Marketing Coordinator", "tex.tracer", 5),
-    ("Data & Insights Analyst", "The LEGO Group", 3),
-    ("Sales Associate", "The LEGO Group", 3),
-    ("Curatorial & Marketing Assistant", "Victory Art Rotterdam", 3),
-    ("Marketing Operations Assistant", "Belkin B.V.", 3),
+    ("Marketing Coordinator", "Northstar Cloud", 5),
+    ("Data & Insights Analyst", "Veloce Mobility", 3),
+    ("Sales Associate", "Veloce Mobility", 3),
+    ("Curatorial & Marketing Assistant", "Studio Kinetix", 3),
+    ("Marketing Operations Assistant", "Lumen Collective", 3),
 ]
 
 
 def test_review_cv_payload_flags_underfilled_grotesk_page():
     payload = grotesk_payload(
         [
-            ("Marketing Coordinator", "tex.tracer", 4),
-            ("Data & Insights Analyst", "The LEGO Group", 3),
-            ("Sales Associate", "The LEGO Group", 2),
-            ("Curatorial & Marketing Assistant", "Victory Art Rotterdam", 1),
+            ("Marketing Coordinator", "Northstar Cloud", 4),
+            ("Data & Insights Analyst", "Veloce Mobility", 3),
+            ("Sales Associate", "Veloce Mobility", 2),
+            ("Curatorial & Marketing Assistant", "Studio Kinetix", 1),
         ]
     )
     cv_data, _, _ = validate_draft_payload(payload)
@@ -203,11 +203,11 @@ def test_review_cv_payload_accepts_full_grotesk_page_without_density_warnings():
 def test_review_cv_payload_still_flags_grotesk_overflow_risk():
     payload = grotesk_payload(
         [
-            ("Marketing Coordinator", "tex.tracer", 5),
-            ("Data & Insights Analyst", "The LEGO Group", 5),
-            ("Sales Associate", "The LEGO Group", 4),
-            ("Curatorial & Marketing Assistant", "Victory Art Rotterdam", 3),
-            ("Marketing Operations Assistant", "Belkin B.V.", 3),
+            ("Marketing Coordinator", "Northstar Cloud", 5),
+            ("Data & Insights Analyst", "Veloce Mobility", 5),
+            ("Sales Associate", "Veloce Mobility", 4),
+            ("Curatorial & Marketing Assistant", "Studio Kinetix", 3),
+            ("Marketing Operations Assistant", "Lumen Collective", 3),
         ]
     )
     cv_data, _, _ = validate_draft_payload(payload)
@@ -279,10 +279,9 @@ def test_reference_application_text_has_no_copyable_prose():
 
     assert "do not copy" in text.lower()
     assert "14-18 bullets" in text or "14 to 18 bullets" in text
-    # None of Angelica's actual CV/letter prose should be reproducible from this note.
-    assert "tex.tracer" not in text
-    assert "Sole marketer" not in text
-    assert "Victory Art" not in text
+    # None of the sample CV/letter CV/letter prose should be reproducible from this note.
+    assert "Northstar Cloud" not in text
+    assert "Studio Kinetix" not in text
 
 
 def test_draft_prompt_instructs_against_copying_previous_drafts():
@@ -372,10 +371,10 @@ def test_create_draft_pack_passes_and_records_custom_instructions(tmp_path, monk
 
     monkeypatch.setattr(dashboard, "generate_draft_with_ollama", fake_generate)
 
-    result = create_draft_pack(conn, job_id, "Put Belkin Marketing Operations on page 1.")
+    result = create_draft_pack(conn, job_id, "Put Lumen Collective Marketing Operations on page 1.")
 
-    assert seen["custom_instructions"] == "Put Belkin Marketing Operations on page 1."
-    assert result["meta"]["custom_instructions"] == "Put Belkin Marketing Operations on page 1."
+    assert seen["custom_instructions"] == "Put Lumen Collective Marketing Operations on page 1."
+    assert result["meta"]["custom_instructions"] == "Put Lumen Collective Marketing Operations on page 1."
 
 
 def test_create_draft_pack_does_not_overwrite_existing_artifacts(tmp_path, monkeypatch):

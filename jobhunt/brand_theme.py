@@ -32,7 +32,7 @@ DARK_THEME_DEFAULTS = {
 
 FIRECRAWL_API_URL = os.environ.get("FIRECRAWL_API_URL", "https://api.firecrawl.dev/v2/scrape")
 
-# A bot-labeled UA (e.g. "AngelicaJobHunt/0.1") trips Akamai/bot-manager style
+# A bot-labeled UA (e.g. "SomeBot/0.1") trips Akamai/bot-manager style
 # protection on sites like tesla.com; match the browser UA already used by
 # jobhunt/adapters.py for the same reason.
 LOCAL_FETCH_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"

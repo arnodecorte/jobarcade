@@ -333,7 +333,7 @@ def find_acted_upon_duplicate(conn: sqlite3.Connection, job: Job) -> sqlite3.Row
     """A re-scraped job can resurface under a new apply_url (aggregators like
     englishjobsearch.nl reuse the same listing across keyword searches, and a
     manually-added row for the same role may already exist with a different
-    URL entirely). Match on normalized company+title against rows Angie has
+    URL entirely). Match on normalized company+title against rows the user has
     already acted on, so a stale exact-URL dedupe_key miss doesn't re-surface
     something already applied to/skipped/expired as 'new'."""
     fuzzy = f"{normalize_key(job.company)}:{normalize_key(job.title)}"

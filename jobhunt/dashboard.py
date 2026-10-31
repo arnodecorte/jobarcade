@@ -60,8 +60,8 @@ from jobhunt.profile import CandidateProfile, export_profile_for_typst, load_can
 STATIC_DIR = ROOT / "dashboard" / "static"
 APPLICATIONS_DIR = ROOT / "Applications"
 CANDIDATE_NAME = load_candidate_profile().name
-OLLAMA_URL = os.environ.get("JOBHUNT_OLLAMA_URL", "http://ollama-core:11434")
-OLLAMA_MODEL = os.environ.get("JOBHUNT_OLLAMA_MODEL", "qwen3:8b")
+OLLAMA_URL = os.environ.get("JOBHUNT_OLLAMA_URL", "http://host.docker.internal:11434")
+OLLAMA_MODEL = os.environ.get("JOBHUNT_OLLAMA_MODEL", "qwen2.5:7b")
 
 # The job hunt is over: scraping, LLM drafting and all other live actions are
 # paused. Set to keep the dashboard itself up as a read-only browsable archive.
@@ -2110,7 +2110,7 @@ def update_job_notes(conn: sqlite3.Connection, job_id: int, notes: str) -> dict:
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
-    server_version = "JobApplicationHub/0.1"
+    server_version = "JobArcade/1.0"
 
     def _send_json(self, payload: dict | list, status: int = HTTPStatus.OK) -> None:
         body = json.dumps(payload, default=_json_default).encode("utf-8")
@@ -2468,8 +2468,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             path = "index.html"
         elif request_path in ("/draft", "/draft/") or request_path.startswith("/draft/"):
             path = "index.html"
-        elif request_path in ("/database", "/database/"):
-            path = "database.html"
         else:
             path = request_path.lstrip("/")
         candidate = (STATIC_DIR / path).resolve()

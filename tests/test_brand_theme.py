@@ -105,7 +105,7 @@ def test_extract_theme_from_url_uses_browser_like_user_agent(monkeypatch):
     brand_theme.extract_theme_from_url("https://tesla.com")
 
     user_agent = captured["headers"].get("User-Agent", "")
-    assert "AngelicaJobHunt" not in user_agent, "bot-labeled UA trips Akamai on sites like tesla.com"
+    assert "SomeBot" not in user_agent, "bot-labeled UA trips Akamai on sites like tesla.com"
     assert "Mozilla" in user_agent
 
 

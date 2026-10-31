@@ -105,11 +105,11 @@ def effective_ollama_settings(conn) -> dict:
         "base_url": saved_url
         or os.environ.get("OLLAMA_BASE_URL", "").strip()
         or os.environ.get("JOBHUNT_OLLAMA_URL", "").strip()
-        or "http://ollama-core:11434",
+        or "http://host.docker.internal:11434",
         "model": saved_model
         or os.environ.get("OLLAMA_MODEL", "").strip()
         or os.environ.get("JOBHUNT_OLLAMA_MODEL", "").strip()
-        or "qwen3:8b",
+        or "qwen2.5:7b",
         "source": "vault" if saved_url or saved_model else "environment",
     }
 

@@ -131,7 +131,7 @@ def test_upsert_evidence_and_apply_rejection_updates_status(tmp_path):
         "received_at": datetime(2026, 7, 5, tzinfo=timezone.utc).isoformat(timespec="seconds"),
     }
 
-    result = upsert_message_and_evidence(conn, "angelica@example.com", email)
+    result = upsert_message_and_evidence(conn, "alex@example.com", email)
     apply_evidence(conn, "msg-1")
 
     assert result["classification"] == "rejection"

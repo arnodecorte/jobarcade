@@ -45,7 +45,7 @@ def test_dedupe_prefers_url_then_source_id_then_fuzzy():
 def test_upsert_skips_acted_upon_duplicate_resurfacing_under_new_url(tmp_path):
     # Pearl Abyss scenario: a manually-tracked, already-applied job re-surfaces
     # via a scraper (e.g. an aggregator clickout link) under a different
-    # apply_url than the one Angie actually applied through. The exact
+    # apply_url than the one user actually applied through. The exact
     # dedupe_key won't match, but company+title fuzzy matching should still
     # recognize it and skip creating a duplicate 'new' row.
     conn = init_db(tmp_path / "jobs.sqlite")

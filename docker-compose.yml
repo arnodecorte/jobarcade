@@ -1,7 +1,7 @@
 services:
   dashboard:
     build: .
-    container_name: jobhunt-hub
+    container_name: jobarcade
     ports:
       - "8765:8765"
     volumes:
@@ -12,6 +12,8 @@ services:
       - PYTHONUNBUFFERED=1
       - JOBHUNT_OLLAMA_URL=http://host.docker.internal:11434
       - JOBHUNT_OLLAMA_MODEL=qwen2.5:7b
+      - JOBHUNT_OLLAMA_API_KEY=${JOBHUNT_OLLAMA_API_KEY:-}
+      - JOBHUNT_ENABLE_SCRAPER=${JOBHUNT_ENABLE_SCRAPER:-0}
       - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY:-}
       - FIRECRAWL_API_URL=${FIRECRAWL_API_URL:-https://api.firecrawl.dev/v2/scrape}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}

@@ -137,12 +137,12 @@ def load_ollama_config(conn=None) -> OllamaConfig:
         base_url=(
             os.environ.get("OLLAMA_BASE_URL")
             or os.environ.get("JOBHUNT_OLLAMA_URL")
-            or "http://ollama-core:11434"
+            or "http://host.docker.internal:11434"
         ).strip(),
         model=(
             os.environ.get("OLLAMA_MODEL")
             or os.environ.get("JOBHUNT_OLLAMA_MODEL")
-            or "qwen3:8b"
+            or "qwen2.5:7b"
         ).strip(),
         timeout=float(os.environ.get("OLLAMA_CLASSIFIER_TIMEOUT", "45")),
     )
