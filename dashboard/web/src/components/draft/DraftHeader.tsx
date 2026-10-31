@@ -22,7 +22,7 @@ export function DraftHeader({
   return (
     <header className="draft-topbar">
       <div className="draft-topbar-info">
-        <p className="draft-kicker">Angelica Job Hunt HQ</p>
+        <p className="draft-kicker">JobArcade Tailoring Studio</p>
         <h1 className="draft-topbar-title">{folder}</h1>
       </div>
       <div className="draft-topbar-actions">

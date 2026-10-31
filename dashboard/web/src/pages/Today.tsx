@@ -57,7 +57,7 @@ export function Today({ data, reload, refreshing }: PageProps) {
   return (
     <>
       <PageHeader
-        kicker="Welcome back, Angelica"
+        kicker="Daily Command Center"
         title="Today"
         sub={`Last sync ${formatDate(summary.last_seen_at)} · ${summary.generated_applications || 0} application folders`}
         onRefresh={reload}

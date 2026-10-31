@@ -79,9 +79,9 @@ export function BubbleMenu({ route, freshCount = 0 }: { route: string; freshCoun
               go("today");
             }}
           >
-            <span className="brand-badge">A</span>
+            <span className="brand-badge">JA</span>
             <span className="bubblebar-brand-text">
-              Job Hunt HQ <span className="brand-beta">{RELEASE.version}</span>
+              JobArcade <span className="brand-beta">{RELEASE.version}</span>
             </span>
           </a>
 

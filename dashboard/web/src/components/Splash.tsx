@@ -9,7 +9,7 @@ export function Splash({ onDismiss }: { onDismiss: () => void }) {
         <span className="pill" style={{ background: "var(--berry-soft)", color: "var(--berry-deep)" }}>
           {RELEASE.version} release · {RELEASE.date}
         </span>
-        <h1 id="splash-title">Welcome to Job Hunt HQ</h1>
+        <h1 id="splash-title">Welcome to JobArcade</h1>
         <p className="splash-intro">{RELEASE.intro}</p>
 
         <div className="splash-grid">

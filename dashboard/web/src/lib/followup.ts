@@ -17,7 +17,7 @@ I remain very enthusiastic about this opportunity and would love to discuss how 
 Thank you for your time and consideration.
 
 Kind regards,
-Angelica`;
+[Your Name]`;
 
   return { subject, body };
 }
