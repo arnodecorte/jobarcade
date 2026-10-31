@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node -e \"require('fs').rmSync('../static/app',{recursive:true,force:true})\"",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run"
