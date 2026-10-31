@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localGoalsToMigrate } from "./goals";
+import { clearLegacyGoals, localGoalsToMigrate } from "./goals";
 import type { Goals } from "./api";
 
 const server = (configured: boolean): Goals => ({
@@ -20,5 +20,14 @@ describe("localGoalsToMigrate", () => {
   });
   it("ignores non-numeric and out-of-range values", () => {
     expect(localGoalsToMigrate(store({ "energy.goal": "abc", "odds.p": "9" }), server(false))).toBeNull();
+  });
+});
+
+describe("clearLegacyGoals", () => {
+  it("removes all three legacy keys and tolerates a throwing storage", () => {
+    const removed: string[] = [];
+    clearLegacyGoals({ removeItem: (k: string) => void removed.push(k) });
+    expect(removed.sort()).toEqual(["energy.goal", "odds.cadence", "odds.p"]);
+    expect(() => clearLegacyGoals({ removeItem: () => { throw new Error("blocked"); } })).not.toThrow();
   });
 });

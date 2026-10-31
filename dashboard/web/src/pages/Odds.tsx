@@ -12,18 +12,34 @@ export function Odds({ data, reload, refreshing }: PageProps) {
   const [p, setP] = useState(data.goals.odds_prior);
   const [cadence, setCadence] = useState(data.goals.odds_cadence);
   const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-  const persist = (patch: Partial<Goals>) => {
+  const pending = useRef<Partial<Goals>>({});
+  const reloadRef = useRef(reload);
+  reloadRef.current = reload;
+  const flush = () => {
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      saveGoals(patch).then(reload).catch(() => undefined);
-    }, 400);
+    timer.current = undefined;
+    const patch = pending.current;
+    pending.current = {};
+    if (Object.keys(patch).length) saveGoals(patch).then(() => reloadRef.current()).catch(() => undefined);
+  };
+  // Flush (not discard) a pending change when leaving the page.
+  useEffect(() => flush, []);
+  // Resync from the server whenever it changes and the user has no unsaved edit.
+  useEffect(() => {
+    if (Object.keys(pending.current).length) return;
+    setP(data.goals.odds_prior);
+    setCadence(data.goals.odds_cadence);
+  }, [data.goals.odds_prior, data.goals.odds_cadence]);
+  const persist = (patch: Partial<Goals>) => {
+    pending.current = { ...pending.current, ...patch };
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(flush, 400);
   };
 
   const lifecycle = stats.lifecycle;
   const mature = lifecycle.matured_denominator;
   const rate = effectiveRate(p, lifecycle.response_rate_observed, mature);
-  const pending = lifecycle.immature_pending;
+  const incubating = lifecycle.immature_pending;
   const sent = lifecycle.submitted_total || stats.applications_sent;
   const eta = etaDays(mature, rate, cadence);
   const projectedMature = Math.round(mature + cadence * 14);
@@ -58,7 +74,7 @@ export function Odds({ data, reload, refreshing }: PageProps) {
           <p className="felt-sub">
             You've submitted <b style={{ color: "var(--dusk-ink)" }}>{sent}</b>, but only{" "}
             <b style={{ color: "var(--dusk-ink)" }}>{mature}</b> are mature enough for calibration.
-            {pending > 0 ? ` ${pending} are still incubating.` : ""} In two weeks, if {cadence}/day mature into the sample,
+            {incubating > 0 ? ` ${incubating} are still incubating.` : ""} In two weeks, if {cadence}/day mature into the sample,
             odds of landing {hasLanded ? "your next interview" : "at least one interview"} reach{" "}
             <b style={{ color: "var(--glow-gold)" }}>{Math.round(projectedProb * 100)}%</b>.
           </p>

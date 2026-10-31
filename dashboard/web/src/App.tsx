@@ -20,7 +20,7 @@ import { Odds } from "./pages/Odds";
 import { System } from "./pages/System";
 import { Discover } from "./pages/Discover";
 import { freshJobs } from "./lib/jobs";
-import { localGoalsToMigrate } from "./lib/goals";
+import { clearLegacyGoals, localGoalsToMigrate } from "./lib/goals";
 
 export type DashData = {
   summary: Summary;
@@ -75,7 +75,14 @@ export function App() {
     } catch {
       local = null;
     }
-    if (local) saveGoals(local).then(reload).catch(() => undefined);
+    if (local) {
+      saveGoals(local)
+        .then(() => {
+          clearLegacyGoals(window.localStorage);
+          reload();
+        })
+        .catch(() => undefined);
+    }
   }, [data]);
   const freshCount = data ? freshJobs(data.jobs).rows.length : 0;
 

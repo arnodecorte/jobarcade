@@ -18,3 +18,14 @@ export function localGoalsToMigrate(storage: Pick<Storage, "getItem">, server: G
   }
   return Object.keys(out).length ? (out as Partial<Goals>) : null;
 }
+
+/** Remove the legacy localStorage goal keys once they are safely on the server. */
+export function clearLegacyGoals(storage: Pick<Storage, "removeItem">): void {
+  for (const key of Object.keys(BOUNDS)) {
+    try {
+      storage.removeItem(key);
+    } catch {
+      /* storage unavailable; nothing to clean */
+    }
+  }
+}
